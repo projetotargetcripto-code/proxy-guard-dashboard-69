@@ -43,7 +43,7 @@ export function InstanceDashboard() {
   console.log("InstanceDashboard: Component started rendering");
   
   const { user, signOut } = useAuth();
-  const { instances, loading, createInstance, updateInstance, deleteInstance, updatePids, clearAllPids } = useInstances();
+  const { instances, loading, createInstance, updateInstance, deleteInstance, updatePids, clearAllPids, bulkUpdateInstances } = useInstances();
   const { createProxy } = useProxies();
   const { services, createService, updateService, deleteService } = useServices();
   const { toast } = useToast();
@@ -121,6 +121,17 @@ export function InstanceDashboard() {
       await updateInstance(instanceId, data);
     } catch (error) {
       console.error("Error quick editing instance:", error);
+    }
+  };
+
+  const handleBulkEditInstances = async (
+    instanceIds: string[],
+    data: { service_id: string | null; status: InstanceStatus }
+  ) => {
+    try {
+      await bulkUpdateInstances(instanceIds, data);
+    } catch (error) {
+      console.error("Error bulk editing instances:", error);
     }
   };
 
@@ -455,6 +466,7 @@ export function InstanceDashboard() {
                 instances={filteredInstances}
                 services={services}
                 onQuickEdit={handleQuickEditInstance}
+                onBulkEdit={handleBulkEditInstances}
                 onEdit={setEditingInstance}
                 onDelete={handleDeleteInstance}
               />

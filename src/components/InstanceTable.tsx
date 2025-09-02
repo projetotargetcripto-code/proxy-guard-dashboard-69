@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -58,6 +59,7 @@ interface InstanceTableProps {
     instanceId: string,
     data: { service_id: string | null; status: InstanceStatus; phone_number?: string | null; instance_name?: string }
   ) => void;
+  onBulkEdit: (instanceIds: string[], data: { service_id: string | null; status: InstanceStatus }) => void;
   onEdit: (instance: Instance) => void;
   onDelete: (instanceId: string) => void;
 }
@@ -66,6 +68,7 @@ export function InstanceTable({
   instances,
   services,
   onQuickEdit,
+  onBulkEdit,
   onEdit,
   onDelete,
 }: InstanceTableProps) {
@@ -75,6 +78,10 @@ export function InstanceTable({
   const [selectedStatus, setSelectedStatus] = useState<InstanceStatus>("Repouso");
   const [selectedPhone, setSelectedPhone] = useState<string>("");
   const [selectedName, setSelectedName] = useState<string>("");
+  const [selectedInstances, setSelectedInstances] = useState<Set<string>>(new Set());
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [bulkService, setBulkService] = useState<string | undefined>(undefined);
+  const [bulkStatus, setBulkStatus] = useState<InstanceStatus>("Repouso");
   const { toast } = useToast();
 
   const openQuickEdit = (instance: Instance) => {
@@ -96,6 +103,45 @@ export function InstanceTable({
       setQuickEditInstance(null);
     }
   };
+
+  const toggleInstanceSelection = (id: string, checked: boolean) => {
+    setSelectedInstances(prev => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(id);
+      } else {
+        newSet.delete(id);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedInstances(new Set(instances.map(i => i.id)));
+    } else {
+      setSelectedInstances(new Set());
+    }
+  };
+
+  const handleBulkEditSave = () => {
+    onBulkEdit(Array.from(selectedInstances), {
+      service_id: bulkService || null,
+      status: bulkStatus,
+    });
+    setBulkEditOpen(false);
+    setSelectedInstances(new Set());
+    setBulkService(undefined);
+    setBulkStatus("Repouso");
+  };
+
+  const allSelected =
+    selectedInstances.size === instances.length && instances.length > 0;
+  const headerChecked = allSelected
+    ? true
+    : selectedInstances.size > 0
+      ? "indeterminate"
+      : false;
 
   const togglePasswordVisibility = (instanceId: string) => {
     setVisiblePasswords(prev => {
@@ -159,14 +205,28 @@ export function InstanceTable({
       <CardContent className="p-0">
         <div className="overflow-x-auto">
           <div className="min-w-full">
+            {selectedInstances.size > 0 && (
+              <div className="flex items-center justify-between p-2 bg-muted/30 border-b border-border/50">
+                <span className="text-sm">{selectedInstances.size} selecionada(s)</span>
+                <Button size="sm" variant="outline" onClick={() => setBulkEditOpen(true)}>
+                  Editar em Massa
+                </Button>
+              </div>
+            )}
             {/* Header */}
             <div className="grid grid-cols-12 gap-4 p-4 bg-muted/20 border-b border-border/50 text-sm font-medium text-muted-foreground">
+              <div className="col-span-1 flex items-center">
+                <Checkbox
+                  checked={headerChecked}
+                  onCheckedChange={(checked) => toggleSelectAll(checked === true)}
+                />
+              </div>
               <div className="col-span-1">#</div>
               <div className="col-span-2">Instância</div>
               <div className="col-span-1">Serviço</div>
               <div className="col-span-1">Estado</div>
               <div className="col-span-1">PIDs</div>
-              <div className="col-span-3">Proxy & Credenciais</div>
+              <div className="col-span-2">Proxy & Credenciais</div>
               <div className="col-span-2">Endereço</div>
               <div className="col-span-1">Ações</div>
             </div>
@@ -177,6 +237,12 @@ export function InstanceTable({
                 key={instance.id}
                 className="grid grid-cols-12 gap-4 p-4 border-b border-border/20 hover:bg-muted/10 transition-colors"
               >
+                <div className="col-span-1 flex items-center">
+                  <Checkbox
+                    checked={selectedInstances.has(instance.id)}
+                    onCheckedChange={(checked) => toggleInstanceSelection(instance.id, checked === true)}
+                  />
+                </div>
                 <div className="col-span-1">
                   <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                     {instance.instance_number}
@@ -199,9 +265,9 @@ export function InstanceTable({
                 </div>
 
                 <div className="col-span-1">
-                  <Badge 
-                    variant="outline" 
-                    className="bg-accent/10 text-accent-foreground border-accent/20 text-xs truncate" 
+                  <Badge
+                    variant="outline"
+                    className="bg-accent/10 text-accent-foreground border-accent/20 text-xs truncate"
                     title={instance.services?.name || 'Nenhum serviço'}
                   >
                     {instance.services?.name || 'N/A'}
@@ -209,11 +275,11 @@ export function InstanceTable({
                 </div>
 
                 <div className="col-span-1">
-                  <Badge 
+                  <Badge
                     variant={
-                      instance.status === 'Disparando' ? 'destructive' : 
-                      instance.status === 'Aquecendo' ? 'default' : 
-                      instance.status === 'Banida' ? 'outline' : 
+                      instance.status === 'Disparando' ? 'destructive' :
+                      instance.status === 'Aquecendo' ? 'default' :
+                      instance.status === 'Banida' ? 'outline' :
                       'secondary'
                     }
                     className="text-xs"
@@ -233,7 +299,7 @@ export function InstanceTable({
                   </div>
                 </div>
 
-                <div className="col-span-3">
+                <div className="col-span-2">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium">{instance.proxies?.name || 'N/A'}</span>
@@ -329,7 +395,7 @@ export function InstanceTable({
                             <AlertDialogHeader>
                               <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Tem certeza que deseja excluir a instância "{instance.instance_name}"? 
+                                Tem certeza que deseja excluir a instância "{instance.instance_name}"?
                                 Esta ação não pode ser desfeita.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
@@ -427,6 +493,62 @@ export function InstanceTable({
             Cancelar
           </Button>
           <Button onClick={handleQuickEditSave}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    <Dialog open={bulkEditOpen} onOpenChange={setBulkEditOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edição em Massa</DialogTitle>
+          <DialogDescription>
+            Atualize o serviço e o estado das instâncias selecionadas.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Serviço</Label>
+            <Select
+              value={bulkService}
+              onValueChange={(value) =>
+                setBulkService(value === "none" ? undefined : value)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Nenhum serviço" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhum serviço</SelectItem>
+                {services.map((service) => (
+                  <SelectItem key={service.id} value={service.id}>
+                    {service.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Estado</Label>
+            <Select
+              value={bulkStatus}
+              onValueChange={(value) => setBulkStatus(value as InstanceStatus)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Repouso">Repouso</SelectItem>
+                <SelectItem value="Aquecendo">Aquecendo</SelectItem>
+                <SelectItem value="Disparando">Disparando</SelectItem>
+                <SelectItem value="Banida">Banida</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setBulkEditOpen(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={handleBulkEditSave}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
