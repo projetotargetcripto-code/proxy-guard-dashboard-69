@@ -8,6 +8,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
@@ -69,13 +70,13 @@ export function InstanceTable({
 }: InstanceTableProps) {
   const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
   const [quickEditInstance, setQuickEditInstance] = useState<Instance | null>(null);
-  const [selectedService, setSelectedService] = useState<string>("");
+  const [selectedService, setSelectedService] = useState<string | undefined>(undefined);
   const [selectedStatus, setSelectedStatus] = useState<InstanceStatus>("Repouso");
   const { toast } = useToast();
 
   const openQuickEdit = (instance: Instance) => {
     setQuickEditInstance(instance);
-    setSelectedService(instance.service_id || "");
+    setSelectedService(instance.service_id || undefined);
     setSelectedStatus(instance.status);
   };
 
@@ -350,16 +351,24 @@ export function InstanceTable({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edição rápida</DialogTitle>
+          <DialogDescription>
+            Atualize rapidamente o serviço e o estado da instância.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Serviço</Label>
-            <Select value={selectedService} onValueChange={setSelectedService}>
+            <Select
+              value={selectedService}
+              onValueChange={(value) =>
+                setSelectedService(value === "none" ? undefined : value)
+              }
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Nenhum serviço" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhum serviço</SelectItem>
+                <SelectItem value="none">Nenhum serviço</SelectItem>
                 {services.map((service) => (
                   <SelectItem key={service.id} value={service.id}>
                     {service.name}
