@@ -87,14 +87,14 @@ export function BulkImportForm({ onSubmit, onCancel }: BulkImportFormProps) {
           throw new Error(`Linha ${i + 1}: número de colunas não confere com o cabeçalho`);
         }
 
-        const instance: any = {};
-        header.forEach((col, idx) => {
-          if (col === 'instance_number' || col === 'proxy_port') {
-            instance[col] = parseInt(values[idx]) || 0;
-          } else {
-            instance[col] = values[idx] || "";
-          }
-        });
+          const instance: Partial<BulkImportInstance> = {};
+          header.forEach((col, idx) => {
+            if (col === 'instance_number' || col === 'proxy_port') {
+              instance[col] = parseInt(values[idx]) || 0;
+            } else {
+              instance[col] = values[idx] || "";
+            }
+          });
 
         // Validate required fields
         if (!instance.instance_name || !instance.proxy_name || !instance.proxy_ip) {
