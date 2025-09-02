@@ -105,16 +105,14 @@ export function InstanceTable({ instances, onEdit, onDelete }: InstanceTableProp
         <div className="overflow-x-auto">
           <div className="min-w-full">
             {/* Header */}
-            <div className="grid grid-cols-14 gap-4 p-4 bg-muted/20 border-b border-border/50 text-sm font-medium text-muted-foreground">
+            <div className="grid grid-cols-12 gap-4 p-4 bg-muted/20 border-b border-border/50 text-sm font-medium text-muted-foreground">
               <div className="col-span-1">#</div>
+              <div className="col-span-2">Instância</div>
               <div className="col-span-1">Serviço</div>
-              <div className="col-span-2">Nome</div>
-              <div className="col-span-1">PIDs</div>
-              <div className="col-span-2">Proxy</div>
-              <div className="col-span-2">Endereço</div>
-              <div className="col-span-2">Credenciais</div>
               <div className="col-span-1">Estado</div>
-              <div className="col-span-1">Criado</div>
+              <div className="col-span-1">PIDs</div>
+              <div className="col-span-3">Proxy & Credenciais</div>
+              <div className="col-span-2">Endereço</div>
               <div className="col-span-1">Ações</div>
             </div>
 
@@ -122,24 +120,12 @@ export function InstanceTable({ instances, onEdit, onDelete }: InstanceTableProp
             {instances.map((instance) => (
               <div
                 key={instance.id}
-                className="grid grid-cols-14 gap-4 p-4 border-b border-border/20 hover:bg-muted/10 transition-colors"
+                className="grid grid-cols-12 gap-4 p-4 border-b border-border/20 hover:bg-muted/10 transition-colors"
               >
                 <div className="col-span-1">
                   <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                     {instance.instance_number}
                   </Badge>
-                </div>
-
-                <div className="col-span-1">
-                  <div className="space-y-1">
-                    <Badge 
-                      variant="outline" 
-                      className="bg-accent/10 text-accent border-accent/20 text-xs truncate" 
-                      title={instance.services?.name}
-                    >
-                      {instance.services?.name || 'N/A'}
-                    </Badge>
-                  </div>
                 </div>
 
                 <div className="col-span-2">
@@ -148,93 +134,19 @@ export function InstanceTable({ instances, onEdit, onDelete }: InstanceTableProp
                       {instance.instance_name}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(instance.created_at).toLocaleDateString('pt-BR')}
+                      Criado: {new Date(instance.created_at).toLocaleDateString('pt-BR')}
                     </p>
                   </div>
                 </div>
 
                 <div className="col-span-1">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Badge variant={instance.pid1 !== '0000' ? 'default' : 'secondary'} className="text-xs">
-                        {instance.pid1}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={instance.pid2 !== '0000' ? 'default' : 'secondary'} className="text-xs">
-                        {instance.pid2}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="col-span-2">
-                  <div className="space-y-1">
-                    <p className="font-medium text-foreground truncate" title={instance.proxies?.name}>
-                      {instance.proxies?.name || 'N/A'}
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-auto p-0 text-xs text-muted-foreground hover:text-primary"
-                      onClick={() => copyToClipboard(`${instance.proxies?.ip}:${instance.proxies?.port}`, "Endereço do proxy")}
-                    >
-                      {instance.proxies?.ip}:{instance.proxies?.port}
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="col-span-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-auto p-0 text-xs text-muted-foreground hover:text-primary"
-                    onClick={() => copyToClipboard(`${instance.proxies?.ip}:${instance.proxies?.port}`, "Endereço completo")}
+                  <Badge 
+                    variant="outline" 
+                    className="bg-accent/10 text-accent-foreground border-accent/20 text-xs truncate" 
+                    title={instance.services?.name || 'Nenhum serviço'}
                   >
-                    <Copy className="h-3 w-3 mr-1" />
-                    Copiar endereço
-                  </Button>
-                </div>
-
-                <div className="col-span-2">
-                  <div className="space-y-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-auto p-0 text-xs text-muted-foreground hover:text-primary"
-                      onClick={() => copyToClipboard(instance.proxies?.username || '', "Username")}
-                    >
-                      <Copy className="h-3 w-3 mr-1" />
-                      {instance.proxies?.username}
-                    </Button>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-auto p-0 text-xs text-muted-foreground hover:text-primary"
-                        onClick={() => togglePasswordVisibility(instance.id)}
-                      >
-                        {visiblePasswords.has(instance.id) ? (
-                          <EyeOff className="h-3 w-3" />
-                        ) : (
-                          <Eye className="h-3 w-3" />
-                        )}
-                      </Button>
-                      {visiblePasswords.has(instance.id) ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-auto p-0 text-xs text-muted-foreground hover:text-primary"
-                          onClick={() => copyToClipboard(instance.proxies?.password || '', "Password")}
-                        >
-                          <Copy className="h-3 w-3 mr-1" />
-                          {instance.proxies?.password}
-                        </Button>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">••••••••</span>
-                      )}
-                    </div>
-                  </div>
+                    {instance.services?.name || 'N/A'}
+                  </Badge>
                 </div>
 
                 <div className="col-span-1">
@@ -252,9 +164,73 @@ export function InstanceTable({ instances, onEdit, onDelete }: InstanceTableProp
                 </div>
 
                 <div className="col-span-1">
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(instance.created_at).toLocaleDateString('pt-BR')}
-                  </p>
+                  <div className="space-y-1">
+                    <Badge variant={instance.pid1 !== '0000' ? 'default' : 'secondary'} className="text-xs">
+                      {instance.pid1}
+                    </Badge>
+                    <Badge variant={instance.pid2 !== '0000' ? 'default' : 'secondary'} className="text-xs">
+                      {instance.pid2}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="col-span-3">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{instance.proxies?.name || 'N/A'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto p-0 text-xs hover:text-primary"
+                        onClick={() => copyToClipboard(instance.proxies?.username || '', "Username")}
+                      >
+                        <Copy className="h-3 w-3 mr-1" />
+                        {instance.proxies?.username}
+                      </Button>
+                      <span>•</span>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-auto p-0"
+                          onClick={() => togglePasswordVisibility(instance.id)}
+                        >
+                          {visiblePasswords.has(instance.id) ? (
+                            <EyeOff className="h-3 w-3" />
+                          ) : (
+                            <Eye className="h-3 w-3" />
+                          )}
+                        </Button>
+                        {visiblePasswords.has(instance.id) ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-auto p-0 text-xs hover:text-primary"
+                            onClick={() => copyToClipboard(instance.proxies?.password || '', "Senha")}
+                          >
+                            <Copy className="h-3 w-3 mr-1" />
+                            {instance.proxies?.password}
+                          </Button>
+                        ) : (
+                          <span className="text-xs">••••••••</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="col-span-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto p-0 text-sm text-muted-foreground hover:text-primary"
+                    onClick={() => copyToClipboard(`${instance.proxies?.ip}:${instance.proxies?.port}`, "Endereço do proxy")}
+                  >
+                    <Copy className="h-3 w-3 mr-1" />
+                    {instance.proxies?.ip}:{instance.proxies?.port}
+                  </Button>
                 </div>
 
                 <div className="col-span-1">
