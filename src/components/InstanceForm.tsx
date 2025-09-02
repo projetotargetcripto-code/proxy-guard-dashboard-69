@@ -168,12 +168,17 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
 
         <div className="space-y-2">
           <Label htmlFor="service_id">Serviço</Label>
-          <Select value={formData.service_id || ""} onValueChange={(value) => handleInputChange("service_id", value)}>
+          <Select
+            value={formData.service_id || ""}
+            onValueChange={(value) =>
+              handleInputChange("service_id", value === "none" ? "" : value)
+            }
+          >
             <SelectTrigger>
               <SelectValue placeholder="Selecione um serviço (opcional)" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Nenhum serviço</SelectItem>
+              <SelectItem value="none">Nenhum serviço</SelectItem>
               {services.map((service) => (
                 <SelectItem key={service.id} value={service.id}>
                   {service.name}
