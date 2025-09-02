@@ -22,7 +22,14 @@ export type Database = {
           instance_number: number
           pid1: string
           pid2: string
+          ppx_proxy_id: number | null
+          ppx_rule_order: number | null
           proxy_id: string
+          proxy_ip: string | null
+          proxy_login: string | null
+          proxy_name: string | null
+          proxy_password: string | null
+          proxy_port: number | null
           updated_at: string
         }
         Insert: {
@@ -32,7 +39,14 @@ export type Database = {
           instance_number: number
           pid1?: string
           pid2?: string
+          ppx_proxy_id?: number | null
+          ppx_rule_order?: number | null
           proxy_id: string
+          proxy_ip?: string | null
+          proxy_login?: string | null
+          proxy_name?: string | null
+          proxy_password?: string | null
+          proxy_port?: number | null
           updated_at?: string
         }
         Update: {
@@ -42,7 +56,14 @@ export type Database = {
           instance_number?: number
           pid1?: string
           pid2?: string
+          ppx_proxy_id?: number | null
+          ppx_rule_order?: number | null
           proxy_id?: string
+          proxy_ip?: string | null
+          proxy_login?: string | null
+          proxy_name?: string | null
+          proxy_password?: string | null
+          proxy_port?: number | null
           updated_at?: string
         }
         Relationships: [

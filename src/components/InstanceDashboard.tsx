@@ -6,11 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { InstanceForm } from "./InstanceForm";
 import { InstanceTable } from "./InstanceTable";
 import { PidTracker } from "./PidTracker";
-import { Search, RotateCcw, Download, Plus } from "lucide-react";
+import { Search, RotateCcw, Download, Plus, FileDown } from "lucide-react";
 import { useInstances } from "@/hooks/useInstances";
 import { useProxies } from "@/hooks/useProxies";
 import { Instance, CreateInstanceData, CreateProxyData } from "@/types/instance";
 import { useToast } from "@/hooks/use-toast";
+import { downloadPpx } from "@/utils/ppx-generator";
 
 export function InstanceDashboard() {
   console.log("InstanceDashboard: Component started rendering");
@@ -129,6 +130,37 @@ export function InstanceDashboard() {
     });
   };
 
+  const handleGeneratePpx = async () => {
+    try {
+      toast({
+        title: "Gerando arquivo PPX...",
+        description: "Aguarde enquanto o arquivo é preparado.",
+      });
+
+      const blob = await downloadPpx();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `perfil.proxifier.ppx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "PPX gerado com sucesso",
+        description: "O arquivo do Proxifier foi baixado.",
+      });
+    } catch (error) {
+      console.error("Error generating PPX:", error);
+      toast({
+        title: "Erro ao gerar PPX",
+        description: "Não foi possível gerar o arquivo do Proxifier.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const filteredInstances = instances.filter(instance =>
     instance.instance_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     instance.instance_number.toString().includes(searchTerm) ||
@@ -184,6 +216,14 @@ export function InstanceDashboard() {
 
               {/* Action Buttons */}
               <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  onClick={handleGeneratePpx}
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold shadow-lg"
+                >
+                  <FileDown className="h-4 w-4 mr-2" />
+                  Gerar PPX
+                </Button>
+
                 <Button
                   variant="outline"
                   onClick={handleClearAllPids}
