@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { InstanceTable } from "./InstanceTable";
 import { InstanceForm } from "./InstanceForm";
+import { PidTracker } from "./PidTracker";
 import { Instance, CreateInstanceData } from "@/types/instance";
 
 export function InstanceDashboard() {
@@ -103,6 +104,23 @@ export function InstanceDashboard() {
       title: "PIDs zerados",
       description: "Todos os PIDs foram zerados com sucesso.",
     });
+  };
+
+  const handleUpdatePids = (pidUpdates: { instanceId: string; pid1: string; pid2: string }[]) => {
+    setInstances(prev => 
+      prev.map(instance => {
+        const update = pidUpdates.find(u => u.instanceId === instance.id);
+        if (update) {
+          return {
+            ...instance,
+            pid1: update.pid1,
+            pid2: update.pid2,
+            updatedAt: new Date(),
+          };
+        }
+        return instance;
+      })
+    );
   };
 
   const handleExportToSpreadsheet = () => {
@@ -253,6 +271,11 @@ export function InstanceDashboard() {
                 >
                   ZERAR PID
                 </Button>
+
+                <PidTracker
+                  instances={instances}
+                  onUpdatePids={handleUpdatePids}
+                />
 
                 <Button
                   variant="outline"
