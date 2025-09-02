@@ -3,6 +3,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -28,20 +43,51 @@ import {
   MoreHorizontal,
   Edit,
   Trash2,
+  Zap,
   Calendar,
 } from "lucide-react";
-import { Instance } from "@/types/instance";
+import { Instance, Service, InstanceStatus } from "@/types/instance";
 import { useToast } from "@/hooks/use-toast";
 
 interface InstanceTableProps {
   instances: Instance[];
+  services: Service[];
+  onQuickEdit: (
+    instanceId: string,
+    data: { service_id: string | null; status: InstanceStatus }
+  ) => void;
   onEdit: (instance: Instance) => void;
   onDelete: (instanceId: string) => void;
 }
 
-export function InstanceTable({ instances, onEdit, onDelete }: InstanceTableProps) {
+export function InstanceTable({
+  instances,
+  services,
+  onQuickEdit,
+  onEdit,
+  onDelete,
+}: InstanceTableProps) {
   const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
+  const [quickEditInstance, setQuickEditInstance] = useState<Instance | null>(null);
+  const [selectedService, setSelectedService] = useState<string>("");
+  const [selectedStatus, setSelectedStatus] = useState<InstanceStatus>("Repouso");
   const { toast } = useToast();
+
+  const openQuickEdit = (instance: Instance) => {
+    setQuickEditInstance(instance);
+    setSelectedService(instance.service_id || "");
+    setSelectedStatus(instance.status);
+  };
+
+  const handleQuickEditSave = () => {
+    if (quickEditInstance) {
+      onQuickEdit(quickEditInstance.id, {
+        service_id: selectedService || null,
+        status: selectedStatus,
+      });
+      setQuickEditInstance(null);
+    }
+  };
 
   const togglePasswordVisibility = (instanceId: string) => {
     setVisiblePasswords(prev => {
@@ -94,7 +140,8 @@ export function InstanceTable({ instances, onEdit, onDelete }: InstanceTableProp
   }
 
   return (
-    <Card className="bg-card/80 backdrop-blur border-border/50">
+    <>
+      <Card className="bg-card/80 backdrop-blur border-border/50">
       <CardHeader>
         <CardTitle className="text-primary flex items-center gap-2">
           <Calendar className="h-5 w-5" />
@@ -250,6 +297,10 @@ export function InstanceTable({ instances, onEdit, onDelete }: InstanceTableProp
                         Copiar nome
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => openQuickEdit(instance)}>
+                        <Zap className="mr-2 h-4 w-4" />
+                        Edição rápida
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onEdit(instance)}>
                         <Edit className="mr-2 h-4 w-4" />
                         Editar
@@ -291,5 +342,58 @@ export function InstanceTable({ instances, onEdit, onDelete }: InstanceTableProp
         </div>
       </CardContent>
     </Card>
+
+    <Dialog
+      open={!!quickEditInstance}
+      onOpenChange={(open) => !open && setQuickEditInstance(null)}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edição rápida</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Serviço</Label>
+            <Select value={selectedService} onValueChange={setSelectedService}>
+              <SelectTrigger>
+                <SelectValue placeholder="Nenhum serviço" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Nenhum serviço</SelectItem>
+                {services.map((service) => (
+                  <SelectItem key={service.id} value={service.id}>
+                    {service.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Estado</Label>
+            <Select
+              value={selectedStatus}
+              onValueChange={(value) => setSelectedStatus(value as InstanceStatus)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Repouso">Repouso</SelectItem>
+                <SelectItem value="Aquecendo">Aquecendo</SelectItem>
+                <SelectItem value="Disparando">Disparando</SelectItem>
+                <SelectItem value="Banida">Banida</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setQuickEditInstance(null)}>
+            Cancelar
+          </Button>
+          <Button onClick={handleQuickEditSave}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </>
   );
 }
