@@ -48,6 +48,30 @@ All colors MUST be HSL.
     --shadow-elegant: 0 4px 20px hsl(240 10% 3.9% / 0.4);
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
+    /* Blockchain Theme Colors */
+    --blockchain-primary: 200 100% 50%;
+    --blockchain-secondary: 240 100% 60%;
+    --blockchain-accent: 180 100% 45%;
+    --blockchain-glow: 200 100% 70%;
+    --cyber-purple: 280 100% 60%;
+    --cyber-cyan: 180 100% 50%;
+    
+    /* Blockchain Gradients */
+    --gradient-blockchain: linear-gradient(135deg, hsl(200 100% 50%), hsl(240 100% 60%));
+    --gradient-cyber: linear-gradient(45deg, hsl(280 100% 60%), hsl(180 100% 50%));
+    --gradient-glow: radial-gradient(circle at center, hsl(200 100% 70% / 0.3), transparent);
+    --gradient-hero: linear-gradient(135deg, hsl(240 10% 3.9% / 0.95), hsl(240 7% 8% / 0.9));
+    
+    /* Blockchain Shadows */
+    --shadow-blockchain: 0 25px 50px -12px hsl(200 100% 50% / 0.25);
+    --shadow-cyber: 0 0 40px hsl(280 100% 60% / 0.4);
+    --shadow-glow: 0 0 60px hsl(200 100% 70% / 0.6);
+    --shadow-float: 0 20px 40px -10px hsl(200 100% 50% / 0.2);
+    
+    /* Enhanced Animations */
+    --transition-bounce: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --transition-elastic: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
     --sidebar-background: 240 7% 8%;
     --sidebar-foreground: 0 0% 98%;
     --sidebar-primary: 45 93% 58%;
@@ -66,5 +90,52 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .blockchain-glow {
+    position: relative;
+  }
+  
+  .blockchain-glow::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    padding: 2px;
+    background: var(--gradient-blockchain);
+    border-radius: inherit;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: xor;
+    z-index: -1;
+  }
+  
+  .floating-animation {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  .pulse-glow {
+    animation: pulse-glow 3s ease-in-out infinite;
+  }
+  
+  .cyber-grid {
+    background-image: 
+      linear-gradient(hsl(200 100% 50% / 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(200 100% 50% / 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+  }
+  
+  @keyframes pulse-glow {
+    0%, 100% { 
+      box-shadow: 0 0 20px hsl(200 100% 50% / 0.3);
+    }
+    50% { 
+      box-shadow: 0 0 40px hsl(200 100% 50% / 0.6), 0 0 60px hsl(180 100% 50% / 0.3);
+    }
   }
 }
