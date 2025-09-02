@@ -26,6 +26,19 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { downloadPpx } from "@/utils/ppx-generator";
 
+
+interface BulkImportInstance {
+  instance_name: string;
+  instance_number: number;
+  pid1: string;
+  pid2: string;
+  proxy_name: string;
+  proxy_ip: string;
+  proxy_port: number;
+  proxy_username: string;
+  proxy_password: string;
+}
+
 export function InstanceDashboard() {
   console.log("InstanceDashboard: Component started rendering");
   
@@ -193,7 +206,7 @@ export function InstanceDashboard() {
     });
   };
 
-  const handleBulkImport = async (instances: any[]) => {
+  const handleBulkImport = async (instances: BulkImportInstance[]) => {
     try {
       toast({
         title: "Importando instâncias...",
@@ -376,7 +389,7 @@ export function InstanceDashboard() {
                     <Button
                       variant="outline"
                       onClick={handleExportToSpreadsheet}
-                      className="border-accent/20 text-accent hover:bg-accent/10"
+                      className="border-accent/20 text-accent-foreground hover:bg-accent/10"
                     >
                       <Download className="h-4 w-4 mr-2" />
                       Exportar
@@ -385,7 +398,7 @@ export function InstanceDashboard() {
                     <Button
                       variant="outline"
                       onClick={() => setIsBulkImporting(true)}
-                      className="border-secondary/20 text-secondary hover:bg-secondary/10"
+                      className="border-secondary/20 text-secondary-foreground hover:bg-secondary/10"
                     >
                       <Upload className="h-4 w-4 mr-2" />
                       Importar em Massa
