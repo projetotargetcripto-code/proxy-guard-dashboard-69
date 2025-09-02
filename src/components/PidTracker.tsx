@@ -133,7 +133,7 @@ export function PidTracker({ instances, onUpdatePids }: PidTrackerProps) {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="border-accent/20 text-accent hover:bg-accent/10">
+        <Button variant="outline" className="border-accent/20 text-accent-foreground hover:bg-accent/10">
           <Search className="h-4 w-4 mr-2" />
           Rastrear PID
         </Button>
