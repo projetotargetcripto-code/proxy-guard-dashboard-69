@@ -27,6 +27,11 @@ export function PidTracker({ instances, onUpdatePids }: PidTrackerProps) {
   const [assignments, setAssignments] = useState<Record<number, string>>({});
 
   const parsePidText = (text: string): PidData[] => {
+    const normalizeLine = (line: string) =>
+      line
+        .replace(/InstÃ¢ncia/g, 'Instância')
+        .replace(/â†’/g, '→');
+
     const lines = text.split('\n');
     const pidData: PidData[] = [];
     let currentInstance: number | null = null;
@@ -34,28 +39,28 @@ export function PidTracker({ instances, onUpdatePids }: PidTrackerProps) {
     let headlessPid = '';
 
     for (const line of lines) {
-      const trimmedLine = line.trim();
-      
+      const trimmedLine = normalizeLine(line.trim());
+
       if (trimmedLine.includes('Instância') && trimmedLine.includes('MEmu.exe')) {
         const instanceMatch = trimmedLine.match(/Instância (\d+)/);
         const pidMatch = trimmedLine.match(/PID: (\d+)/);
-        
+
         if (instanceMatch && pidMatch) {
           currentInstance = parseInt(instanceMatch[1]);
           memuPid = pidMatch[1];
         }
       } else if (trimmedLine.includes('Instância') && trimmedLine.includes('MEmuHeadless.exe')) {
         const pidMatch = trimmedLine.match(/PID: (\d+)/);
-        
+
         if (pidMatch && currentInstance !== null) {
           headlessPid = pidMatch[1];
-          
+
           pidData.push({
             instanceNumber: currentInstance,
             pid1: memuPid,
             pid2: headlessPid,
           });
-          
+
           currentInstance = null;
           memuPid = '';
           headlessPid = '';
