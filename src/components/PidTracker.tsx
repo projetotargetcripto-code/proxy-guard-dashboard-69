@@ -19,6 +19,7 @@ interface PidData {
   instanceNumber: number;
   pid1: string;
   pid2: string;
+  name?: string;
 }
 
 interface PidTrackerProps {
@@ -44,6 +45,7 @@ export function PidTracker({ instances, onUpdatePids }: PidTrackerProps) {
     let currentInstance: number | null = null;
     let memuPid = '';
     let headlessPid = '';
+    let instanceName = '';
 
     for (const line of lines) {
       const trimmedLine = normalizeLine(line.trim());
@@ -58,19 +60,23 @@ export function PidTracker({ instances, onUpdatePids }: PidTrackerProps) {
         }
       } else if (trimmedLine.includes('Instância') && trimmedLine.includes('MEmuHeadless.exe')) {
         const pidMatch = trimmedLine.match(/PID: (\d+)/);
+        const nameMatch = trimmedLine.match(/Nome: ([^|]+)/);
 
         if (pidMatch && currentInstance !== null) {
           headlessPid = pidMatch[1];
+          instanceName = nameMatch ? nameMatch[1].trim() : '';
 
           pidData.push({
             instanceNumber: currentInstance,
             pid1: memuPid,
             pid2: headlessPid,
+            name: instanceName,
           });
 
           currentInstance = null;
           memuPid = '';
           headlessPid = '';
+          instanceName = '';
         }
       }
     }
@@ -81,6 +87,20 @@ export function PidTracker({ instances, onUpdatePids }: PidTrackerProps) {
   const handleSubmitText = () => {
     const parsed = parsePidText(pidText);
     setParsedPids(parsed);
+
+    const suggested: Record<number, string> = {};
+    parsed.forEach(pid => {
+      if (pid.name) {
+        const match = instances.find(
+          inst => inst.instance_name.toLowerCase() === pid.name!.toLowerCase()
+        );
+        if (match) {
+          suggested[pid.instanceNumber] = match.id;
+        }
+      }
+    });
+    setAssignments(suggested);
+
     setStep('assignment');
   };
 
