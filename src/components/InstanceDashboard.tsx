@@ -61,6 +61,21 @@ export function InstanceDashboard() {
     });
   };
 
+  const handleClearAllPids = () => {
+    setInstances(prev => 
+      prev.map(instance => ({
+        ...instance,
+        pid1: '',
+        pid2: '',
+        updatedAt: new Date(),
+      }))
+    );
+    toast({
+      title: "PIDs zerados",
+      description: "Todos os PIDs foram zerados com sucesso.",
+    });
+  };
+
   const handleExportToSpreadsheet = () => {
     const csvContent = [
       ["Número", "Nome", "PID 1", "PID 2", "Nome Proxy", "IP Proxy", "Porta Proxy", "Login Proxy", "Senha Proxy", "Criado em", "Atualizado em"],
@@ -190,6 +205,16 @@ export function InstanceDashboard() {
               </div>
 
               <div className="flex items-center gap-2">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleClearAllPids}
+                  disabled={instances.length === 0}
+                  className="hover:shadow-destructive"
+                >
+                  ZERAR PID
+                </Button>
+
                 <Button
                   variant="outline"
                   size="sm"
