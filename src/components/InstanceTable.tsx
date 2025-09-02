@@ -56,7 +56,7 @@ interface InstanceTableProps {
   services: Service[];
   onQuickEdit: (
     instanceId: string,
-    data: { service_id: string | null; status: InstanceStatus; phone_number?: string | null }
+    data: { service_id: string | null; status: InstanceStatus; phone_number?: string | null; instance_name?: string }
   ) => void;
   onEdit: (instance: Instance) => void;
   onDelete: (instanceId: string) => void;
@@ -74,6 +74,7 @@ export function InstanceTable({
   const [selectedService, setSelectedService] = useState<string | undefined>(undefined);
   const [selectedStatus, setSelectedStatus] = useState<InstanceStatus>("Repouso");
   const [selectedPhone, setSelectedPhone] = useState<string>("");
+  const [selectedName, setSelectedName] = useState<string>("");
   const { toast } = useToast();
 
   const openQuickEdit = (instance: Instance) => {
@@ -81,6 +82,7 @@ export function InstanceTable({
     setSelectedService(instance.service_id || undefined);
     setSelectedStatus(instance.status);
     setSelectedPhone(instance.phone_number || "");
+    setSelectedName(instance.instance_name);
   };
 
   const handleQuickEditSave = () => {
@@ -89,6 +91,7 @@ export function InstanceTable({
         service_id: selectedService || null,
         status: selectedStatus,
         phone_number: selectedPhone || null,
+        instance_name: selectedName,
       });
       setQuickEditInstance(null);
     }
@@ -186,7 +189,10 @@ export function InstanceTable({
                       {instance.instance_name}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {instance.phone_number ? `Tel: ${instance.phone_number} • ` : ""}
+                      {instance.phone_number && (
+                        <span className="font-bold">{`Tel: ${instance.phone_number}`}</span>
+                      )}
+                      {instance.phone_number && " • "}
                       Criado: {new Date(instance.created_at).toLocaleDateString('pt-BR')}
                     </p>
                   </div>
@@ -361,6 +367,14 @@ export function InstanceTable({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Nome da instância</Label>
+            <Input
+              value={selectedName}
+              onChange={(e) => setSelectedName(e.target.value)}
+              placeholder="Nome"
+            />
+          </div>
           <div className="space-y-2">
             <Label>Telefone</Label>
             <Input
