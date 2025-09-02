@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { InstanceForm } from "./InstanceForm";
 import { InstanceTable } from "./InstanceTable";
 import { PidTracker } from "./PidTracker";
-import { Search, RotateCcw, Download, Plus, FileDown } from "lucide-react";
+import { BulkImportForm } from "./BulkImportForm";
+import { Search, RotateCcw, Download, Plus, FileDown, Upload } from "lucide-react";
 import { useInstances } from "@/hooks/useInstances";
 import { useProxies } from "@/hooks/useProxies";
 import { Instance, CreateInstanceData, CreateProxyData } from "@/types/instance";
@@ -25,6 +26,7 @@ export function InstanceDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddingInstance, setIsAddingInstance] = useState(false);
   const [editingInstance, setEditingInstance] = useState<Instance | null>(null);
+  const [isBulkImporting, setIsBulkImporting] = useState(false);
 
   const handleAddInstance = async (instanceData: CreateInstanceData, proxyData?: CreateProxyData) => {
     try {
@@ -128,6 +130,53 @@ export function InstanceDashboard() {
       title: "Exportação realizada com sucesso",
       description: "Os dados foram exportados para um arquivo CSV.",
     });
+  };
+
+  const handleBulkImport = async (instances: any[]) => {
+    try {
+      toast({
+        title: "Importando instâncias...",
+        description: `Criando ${instances.length} instâncias...`,
+      });
+
+      // Create proxies and instances sequentially to avoid conflicts
+      for (const instance of instances) {
+        // Create proxy first
+        const proxyData: CreateProxyData = {
+          name: instance.proxy_name,
+          ip: instance.proxy_ip,
+          port: instance.proxy_port,
+          username: instance.proxy_username,
+          password: instance.proxy_password,
+        };
+
+        const newProxy = await createProxy(proxyData);
+
+        // Create instance with the new proxy
+        const instanceData: CreateInstanceData = {
+          instance_name: instance.instance_name,
+          instance_number: instance.instance_number,
+          pid1: instance.pid1,
+          pid2: instance.pid2,
+          proxy_id: newProxy.id,
+        };
+
+        await createInstance(instanceData);
+      }
+
+      setIsBulkImporting(false);
+      toast({
+        title: "Importação concluída",
+        description: `${instances.length} instâncias criadas com sucesso.`,
+      });
+    } catch (error) {
+      console.error("Error bulk importing:", error);
+      toast({
+        title: "Erro na importação",
+        description: "Não foi possível importar todas as instâncias.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleGeneratePpx = async () => {
@@ -248,6 +297,15 @@ export function InstanceDashboard() {
                 </Button>
 
                 <Button
+                  variant="outline"
+                  onClick={() => setIsBulkImporting(true)}
+                  className="border-secondary/20 text-secondary hover:bg-secondary/10"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Importar em Massa
+                </Button>
+
+                <Button
                   onClick={() => setIsAddingInstance(true)}
                   className="bg-gradient-golden hover:shadow-golden"
                 >
@@ -260,7 +318,16 @@ export function InstanceDashboard() {
         </Card>
 
         {/* Main Content */}
-        {isAddingInstance || editingInstance ? (
+        {isBulkImporting ? (
+          <Card className="bg-card/80 backdrop-blur border-border/50">
+            <CardContent className="p-6">
+              <BulkImportForm
+                onSubmit={handleBulkImport}
+                onCancel={() => setIsBulkImporting(false)}
+              />
+            </CardContent>
+          </Card>
+        ) : isAddingInstance || editingInstance ? (
           <Card className="bg-card/80 backdrop-blur border-border/50">
             <CardHeader>
               <CardTitle className="text-primary">
