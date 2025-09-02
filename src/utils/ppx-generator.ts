@@ -1,7 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
 
-// Template PPX - NÃO ALTERAR, apenas injetar listas
+// Template PPX - Incluindo proxy fixo CONECTANDO (ID 104) e regra default
 const PPX_TEMPLATE = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  TEMPLATE PPX (ProxifierProfile)
+  - Mantém FIXO o proxy/id 104 (fail.com, label CONECTANDO) e a regra default que aponta para ele.
+  - Insere proxies e regras dinâmicas nos blocos marcados como BEGIN/END.
+  - Substitui placeholders {{...}} com dados do sistema (escapando XML quando necessário).
+-->
 <ProxifierProfile version="102" platform="Windows" product_id="0" product_minver="400">
 	<Options>
 		<Resolve>
@@ -20,27 +26,39 @@ const PPX_TEMPLATE = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 		<HandleDirectConnections enabled="true" />
 		<HttpProxiesSupport enabled="false" />
 	</Options>
+
 	<ProxyList>
+		<!-- STATIC: Proxy 104 reservado para CONECTANDO (não alterar) -->
+		<Proxy id="104" type="SOCKS5">
+			<Authentication enabled="true">
+				<Password>on</Password>
+				<Username>on</Username>
+			</Authentication>
+			<Options>48</Options>
+			<Port>1080</Port>
+			<Address>fail.com</Address>
+			<Label>CONECTANDO</Label>
+		</Proxy>
+
+		<!-- BEGIN:DYNAMIC_PROXY_LIST (gerado pelo sistema) -->
 {{PROXY_LIST}}
+		<!-- END:DYNAMIC_PROXY_LIST -->
 	</ProxyList>
+
 	<ChainList />
+
 	<RuleList>
+		<!-- BEGIN:DYNAMIC_RULE_LIST (uma regra por instância) -->
 {{RULE_LIST}}
-{{STATIC_RULES}}
+		<!-- END:DYNAMIC_RULE_LIST -->
+
+		<!-- STATIC: Regra default sempre apontando para CONECTANDO (id 104). Não remover. -->
+		<Rule enabled="true">
+			<Action type="Proxy">104</Action>
+			<Name>CONECTANDO (Default)</Name>
+		</Rule>
 	</RuleList>
 </ProxifierProfile>`;
-
-// Regras estáticas (opcional)
-const STATIC_RULES = `		<Rule enabled="true">
-			<Action type="Direct" />
-			<Applications>adb.exe</Applications>
-			<Name>adb</Name>
-		</Rule>
-		<Rule enabled="true">
-			<Action type="Direct" />
-			<Applications>javaw.exe;smartscreen.exe</Applications>
-			<Name>unimessenger</Name>
-		</Rule>`;
 
 interface InstanceRow {
   id: string;
@@ -88,12 +106,21 @@ async function allocateMissingIds(rows: InstanceRow[]): Promise<void> {
     .map(r => r.ppx_proxy_id)
     .filter((id): id is number => id !== null);
   
+  // Adicionar ID 104 como reservado (proxy CONECTANDO fixo)
+  usedIds.push(104);
+  
   // Próximo ID (começar em 100 se não houver nenhum)
   let nextId = usedIds.length ? Math.max(...usedIds) + 1 : 100;
+  
+  // Pular ID 104 se necessário (reservado para CONECTANDO)
+  if (nextId === 104) nextId = 105;
 
   // Alocar IDs para rows sem ppx_proxy_id
   for (const row of rows) {
     if (row.ppx_proxy_id === null) {
+      // Garantir que não usamos o ID 104
+      while (nextId === 104) nextId++;
+      
       row.ppx_proxy_id = nextId++;
       
       // Persistir no banco
@@ -172,11 +199,10 @@ export async function generatePpxXml(): Promise<string> {
     .filter(rule => rule.length > 0) // Remover regras inválidas
     .join('\n');
 
-  // Gerar XML final
+  // Gerar XML final (sem regras estáticas - já incluídas no template)
   const xml = PPX_TEMPLATE
     .replace('{{PROXY_LIST}}', proxyList)
-    .replace('{{RULE_LIST}}', ruleList)
-    .replace('{{STATIC_RULES}}', STATIC_RULES);
+    .replace('{{RULE_LIST}}', ruleList);
 
   console.log('PPX gerado com sucesso');
   
