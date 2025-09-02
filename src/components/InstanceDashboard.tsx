@@ -97,7 +97,7 @@ export function InstanceDashboard() {
 
   const handleQuickEditInstance = async (
     instanceId: string,
-    data: { service_id: string | null; status: InstanceStatus }
+    data: { service_id: string | null; status: InstanceStatus; phone_number?: string | null }
   ) => {
     try {
       await updateInstance(instanceId, data);

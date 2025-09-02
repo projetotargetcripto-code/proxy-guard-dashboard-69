@@ -11,6 +11,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -55,7 +56,7 @@ interface InstanceTableProps {
   services: Service[];
   onQuickEdit: (
     instanceId: string,
-    data: { service_id: string | null; status: InstanceStatus }
+    data: { service_id: string | null; status: InstanceStatus; phone_number?: string | null }
   ) => void;
   onEdit: (instance: Instance) => void;
   onDelete: (instanceId: string) => void;
@@ -72,12 +73,14 @@ export function InstanceTable({
   const [quickEditInstance, setQuickEditInstance] = useState<Instance | null>(null);
   const [selectedService, setSelectedService] = useState<string | undefined>(undefined);
   const [selectedStatus, setSelectedStatus] = useState<InstanceStatus>("Repouso");
+  const [selectedPhone, setSelectedPhone] = useState<string>("");
   const { toast } = useToast();
 
   const openQuickEdit = (instance: Instance) => {
     setQuickEditInstance(instance);
     setSelectedService(instance.service_id || undefined);
     setSelectedStatus(instance.status);
+    setSelectedPhone(instance.phone_number || "");
   };
 
   const handleQuickEditSave = () => {
@@ -85,6 +88,7 @@ export function InstanceTable({
       onQuickEdit(quickEditInstance.id, {
         service_id: selectedService || null,
         status: selectedStatus,
+        phone_number: selectedPhone || null,
       });
       setQuickEditInstance(null);
     }
@@ -182,6 +186,7 @@ export function InstanceTable({
                       {instance.instance_name}
                     </p>
                     <p className="text-xs text-muted-foreground">
+                      {instance.phone_number ? `Tel: ${instance.phone_number} • ` : ""}
                       Criado: {new Date(instance.created_at).toLocaleDateString('pt-BR')}
                     </p>
                   </div>
@@ -356,6 +361,14 @@ export function InstanceTable({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Telefone</Label>
+            <Input
+              value={selectedPhone}
+              onChange={(e) => setSelectedPhone(e.target.value)}
+              placeholder="(00) 00000-0000"
+            />
+          </div>
           <div className="space-y-2">
             <Label>Serviço</Label>
             <Select

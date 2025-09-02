@@ -24,6 +24,7 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
     instance_number: 1,
     pid1: "0000",
     pid2: "0000",
+    phone_number: "",
     proxy_id: "",
     service_id: "",
     status: "Repouso",
@@ -48,6 +49,7 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
         instance_number: instance.instance_number,
         pid1: instance.pid1,
         pid2: instance.pid2,
+        phone_number: instance.phone_number || "",
         proxy_id: instance.proxy_id,
         service_id: instance.service_id || "",
         status: instance.status,
@@ -164,6 +166,16 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
           {errors.instance_number && (
             <p className="text-sm text-destructive">{errors.instance_number}</p>
           )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="phone_number">Telefone</Label>
+          <Input
+            id="phone_number"
+            value={formData.phone_number || ""}
+            onChange={(e) => handleInputChange("phone_number", e.target.value)}
+            placeholder="(00) 00000-0000"
+          />
         </div>
 
         <div className="space-y-2">
