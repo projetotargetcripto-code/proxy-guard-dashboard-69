@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { Plus, Upload, Download, Search, Edit, Trash2, Eye, EyeOff } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Plus, Upload, Download, Search, Edit, Trash2, Eye, EyeOff, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,35 @@ export function InstanceDashboard() {
   const [editingInstance, setEditingInstance] = useState<Instance | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Load instances from localStorage on component mount
+  useEffect(() => {
+    const savedInstances = localStorage.getItem('proxy-instances');
+    if (savedInstances) {
+      try {
+        const parsedInstances = JSON.parse(savedInstances).map((inst: any) => ({
+          ...inst,
+          createdAt: new Date(inst.createdAt),
+          updatedAt: new Date(inst.updatedAt),
+        }));
+        setInstances(parsedInstances);
+      } catch (error) {
+        console.error('Erro ao carregar instâncias do localStorage:', error);
+      }
+    }
+  }, []);
+
+  const saveInstances = (instancesData: Instance[]) => {
+    localStorage.setItem('proxy-instances', JSON.stringify(instancesData));
+  };
+
+  const handleSave = () => {
+    saveInstances(instances);
+    toast({
+      title: "Dados salvos",
+      description: "Todas as instâncias foram salvas com sucesso.",
+    });
+  };
 
   const handleAddInstance = (data: CreateInstanceData) => {
     const newInstance: Instance = {
@@ -65,8 +94,8 @@ export function InstanceDashboard() {
     setInstances(prev => 
       prev.map(instance => ({
         ...instance,
-        pid1: '',
-        pid2: '',
+        pid1: '0000',
+        pid2: '0000',
         updatedAt: new Date(),
       }))
     );
@@ -205,6 +234,16 @@ export function InstanceDashboard() {
               </div>
 
               <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleSave}
+                  className="bg-gradient-to-r from-primary/20 to-primary/30 hover:from-primary/30 hover:to-primary/40"
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  Salvar
+                </Button>
+
                 <Button
                   variant="destructive"
                   size="sm"
