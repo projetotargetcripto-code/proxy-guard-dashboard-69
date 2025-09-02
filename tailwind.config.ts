@@ -96,16 +96,19 @@ export default {
 				'bounce': 'var(--transition-bounce)',
 				'elastic': 'var(--transition-elastic)'
 			},
-			borderRadius: {
-				lg: 'var(--radius)',
-				md: 'calc(var(--radius) - 2px)',
-				sm: 'calc(var(--radius) - 4px)'
-			},
-			keyframes: {
-				'accordion-down': {
-					from: {
-						height: '0'
-					},
+                        borderRadius: {
+                                lg: 'var(--radius)',
+                                md: 'calc(var(--radius) - 2px)',
+                                sm: 'calc(var(--radius) - 4px)'
+                        },
+                        gridTemplateColumns: {
+                                '13': 'repeat(13, minmax(0, 1fr))',
+                        },
+                        keyframes: {
+                                'accordion-down': {
+                                        from: {
+                                                height: '0'
+                                        },
 					to: {
 						height: 'var(--radix-accordion-content-height)'
 					}
