@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -114,6 +121,9 @@ export function PidTracker({ instances, onUpdatePids }: PidTrackerProps) {
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Rastreamento de PIDs</DialogTitle>
+          <DialogDescription>
+            Cole ou importe os dados dos PIDs para atribuí-los às instâncias.
+          </DialogDescription>
         </DialogHeader>
 
         {step === 'input' ? (
@@ -168,8 +178,10 @@ export function PidTracker({ instances, onUpdatePids }: PidTrackerProps) {
                       <ArrowRight className="h-4 w-4 text-muted-foreground" />
                       <div className="flex-1">
                         <Select
-                          value={assignments[pid.instanceNumber] || ''}
-                          onValueChange={(value) => handleAssignmentChange(pid.instanceNumber, value)}
+                          value={assignments[pid.instanceNumber] || undefined}
+                          onValueChange={(value) =>
+                            handleAssignmentChange(pid.instanceNumber, value)
+                          }
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Selecionar instância" />

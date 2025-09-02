@@ -169,7 +169,7 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
         <div className="space-y-2">
           <Label htmlFor="service_id">Serviço</Label>
           <Select
-            value={formData.service_id || ""}
+            value={formData.service_id || undefined}
             onValueChange={(value) =>
               handleInputChange("service_id", value === "none" ? "" : value)
             }
