@@ -13,9 +13,13 @@ import { Instance, CreateInstanceData, CreateProxyData } from "@/types/instance"
 import { useToast } from "@/hooks/use-toast";
 
 export function InstanceDashboard() {
+  console.log("InstanceDashboard: Component started rendering");
+  
   const { instances, loading, createInstance, updateInstance, deleteInstance, updatePids, clearAllPids } = useInstances();
   const { createProxy } = useProxies();
   const { toast } = useToast();
+  
+  console.log("InstanceDashboard: Hooks loaded", { instances, loading });
   
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddingInstance, setIsAddingInstance] = useState(false);
@@ -132,6 +136,7 @@ export function InstanceDashboard() {
   );
 
   if (loading) {
+    console.log("InstanceDashboard: Still loading...");
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -141,6 +146,8 @@ export function InstanceDashboard() {
       </div>
     );
   }
+
+  console.log("InstanceDashboard: Rendering main content", { instancesCount: instances.length });
 
   return (
     <div className="min-h-screen bg-gradient-dark p-6">

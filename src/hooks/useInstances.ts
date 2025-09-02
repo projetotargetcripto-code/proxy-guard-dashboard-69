@@ -4,11 +4,14 @@ import { Instance, CreateInstanceData } from "@/types/instance";
 import { useToast } from "@/hooks/use-toast";
 
 export function useInstances() {
+  console.log("useInstances: Hook started");
+  
   const [instances, setInstances] = useState<Instance[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   const fetchInstances = async () => {
+    console.log("useInstances: Fetching instances from Supabase");
     try {
       const { data, error } = await supabase
         .from('instances')
@@ -28,9 +31,10 @@ export function useInstances() {
         .order('instance_number', { ascending: true });
 
       if (error) throw error;
+      console.log("useInstances: Data fetched successfully", { data });
       setInstances(data || []);
     } catch (error) {
-      console.error('Error fetching instances:', error);
+      console.error('useInstances: Error fetching instances:', error);
       toast({
         title: "Erro ao carregar instâncias",
         description: "Não foi possível carregar a lista de instâncias.",
