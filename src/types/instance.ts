@@ -25,6 +25,7 @@ export interface Instance {
   instance_name: string;
   pid1: string;
   pid2: string;
+  phone_number?: string | null;
   proxy_id: string;
   service_id?: string | null;
   status: InstanceStatus;
@@ -39,6 +40,7 @@ export interface CreateInstanceData {
   instance_number: number;
   pid1: string;
   pid2: string;
+  phone_number?: string | null;
   proxy_id: string;
   service_id?: string | null;
   status: InstanceStatus;
