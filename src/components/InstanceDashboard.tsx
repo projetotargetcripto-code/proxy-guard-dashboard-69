@@ -15,7 +15,14 @@ import { useInstances } from "@/hooks/useInstances";
 import { useProxies } from "@/hooks/useProxies";
 import { useServices } from "@/hooks/useServices";
 import { useAuth } from "@/hooks/useAuth";
-import { Instance, CreateInstanceData, CreateProxyData, Service, CreateServiceData } from "@/types/instance";
+import {
+  Instance,
+  CreateInstanceData,
+  CreateProxyData,
+  Service,
+  CreateServiceData,
+  InstanceStatus,
+} from "@/types/instance";
 import { useToast } from "@/hooks/use-toast";
 import { downloadPpx } from "@/utils/ppx-generator";
 
@@ -85,6 +92,17 @@ export function InstanceDashboard() {
       await deleteInstance(instanceId);
     } catch (error) {
       console.error("Error deleting instance:", error);
+    }
+  };
+
+  const handleQuickEditInstance = async (
+    instanceId: string,
+    data: { service_id: string | null; status: InstanceStatus }
+  ) => {
+    try {
+      await updateInstance(instanceId, data);
+    } catch (error) {
+      console.error("Error quick editing instance:", error);
     }
   };
 
@@ -417,6 +435,8 @@ export function InstanceDashboard() {
             ) : (
               <InstanceTable
                 instances={filteredInstances}
+                services={services}
+                onQuickEdit={handleQuickEditInstance}
                 onEdit={setEditingInstance}
                 onDelete={handleDeleteInstance}
               />
