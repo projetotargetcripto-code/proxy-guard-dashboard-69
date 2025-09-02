@@ -7,9 +7,10 @@ import { InstanceForm } from "./InstanceForm";
 import { InstanceTable } from "./InstanceTable";
 import { PidTracker } from "./PidTracker";
 import { BulkImportForm } from "./BulkImportForm";
-import { Search, RotateCcw, Download, Plus, FileDown, Upload } from "lucide-react";
+import { Search, RotateCcw, Download, Plus, FileDown, Upload, LogOut } from "lucide-react";
 import { useInstances } from "@/hooks/useInstances";
 import { useProxies } from "@/hooks/useProxies";
+import { useAuth } from "@/hooks/useAuth";
 import { Instance, CreateInstanceData, CreateProxyData } from "@/types/instance";
 import { useToast } from "@/hooks/use-toast";
 import { downloadPpx } from "@/utils/ppx-generator";
@@ -17,6 +18,7 @@ import { downloadPpx } from "@/utils/ppx-generator";
 export function InstanceDashboard() {
   console.log("InstanceDashboard: Component started rendering");
   
+  const { user, signOut } = useAuth();
   const { instances, loading, createInstance, updateInstance, deleteInstance, updatePids, clearAllPids } = useInstances();
   const { createProxy } = useProxies();
   const { toast } = useToast();
@@ -235,9 +237,25 @@ export function InstanceDashboard() {
       <div className="mx-auto max-w-7xl space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold bg-gradient-golden bg-clip-text text-transparent">
-            Dashboard de Instâncias
-          </h1>
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <h1 className="text-4xl font-bold bg-gradient-golden bg-clip-text text-transparent">
+                Dashboard de Instâncias
+              </h1>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>Logado como: {user?.email}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={signOut}
+                className="ml-2"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sair
+              </Button>
+            </div>
+          </div>
           <div className="flex items-center justify-center gap-2">
             <Badge variant="outline" className="bg-card border-primary/20 text-primary">
               {instances.length} instância{instances.length !== 1 ? 's' : ''} configurada{instances.length !== 1 ? 's' : ''}
