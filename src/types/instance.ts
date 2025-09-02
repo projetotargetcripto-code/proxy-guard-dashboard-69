@@ -9,6 +9,16 @@ export interface Proxy {
   updated_at: string;
 }
 
+export interface Service {
+  id: string;
+  name: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type InstanceStatus = 'Repouso' | 'Aquecendo' | 'Disparando' | 'Banida';
+
 export interface Instance {
   id: string;
   instance_number: number;
@@ -16,9 +26,12 @@ export interface Instance {
   pid1: string;
   pid2: string;
   proxy_id: string;
+  service_id?: string;
+  status: InstanceStatus;
   created_at: string;
   updated_at: string;
   proxies?: Proxy;
+  services?: Service;
 }
 
 export interface CreateInstanceData {
@@ -27,6 +40,13 @@ export interface CreateInstanceData {
   pid1: string;
   pid2: string;
   proxy_id: string;
+  service_id?: string;
+  status: InstanceStatus;
+}
+
+export interface CreateServiceData {
+  name: string;
+  description?: string;
 }
 
 export interface CreateProxyData {

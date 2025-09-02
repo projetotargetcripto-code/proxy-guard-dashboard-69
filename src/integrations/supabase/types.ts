@@ -30,6 +30,8 @@ export type Database = {
           proxy_name: string | null
           proxy_password: string | null
           proxy_port: number | null
+          service_id: string | null
+          status: Database["public"]["Enums"]["instance_status"]
           updated_at: string
         }
         Insert: {
@@ -47,6 +49,8 @@ export type Database = {
           proxy_name?: string | null
           proxy_password?: string | null
           proxy_port?: number | null
+          service_id?: string | null
+          status?: Database["public"]["Enums"]["instance_status"]
           updated_at?: string
         }
         Update: {
@@ -64,6 +68,8 @@ export type Database = {
           proxy_name?: string | null
           proxy_password?: string | null
           proxy_port?: number | null
+          service_id?: string | null
+          status?: Database["public"]["Enums"]["instance_status"]
           updated_at?: string
         }
         Relationships: [
@@ -72,6 +78,13 @@ export type Database = {
             columns: ["proxy_id"]
             isOneToOne: false
             referencedRelation: "proxies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instances_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
             referencedColumns: ["id"]
           },
         ]
@@ -109,6 +122,30 @@ export type Database = {
         }
         Relationships: []
       }
+      services: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -117,7 +154,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      instance_status: "Repouso" | "Aquecendo" | "Disparando" | "Banida"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -244,6 +281,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      instance_status: ["Repouso", "Aquecendo", "Disparando", "Banida"],
+    },
   },
 } as const

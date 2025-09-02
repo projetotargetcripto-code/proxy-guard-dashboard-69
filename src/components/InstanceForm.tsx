@@ -6,8 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
-import { Instance, CreateInstanceData, CreateProxyData, Proxy } from "@/types/instance";
+import { Instance, CreateInstanceData, CreateProxyData, Proxy, Service, CreateServiceData, InstanceStatus } from "@/types/instance";
 import { useProxies } from "@/hooks/useProxies";
+import { useServices } from "@/hooks/useServices";
 
 interface InstanceFormProps {
   instance?: Instance | null;
@@ -17,12 +18,15 @@ interface InstanceFormProps {
 
 export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps) {
   const { proxies } = useProxies();
+  const { services } = useServices();
   const [formData, setFormData] = useState<CreateInstanceData>({
     instance_name: "",
     instance_number: 1,
     pid1: "0000",
     pid2: "0000",
     proxy_id: "",
+    service_id: "",
+    status: "Repouso",
   });
 
   const [proxyFormData, setProxyFormData] = useState<CreateProxyData>({
@@ -45,6 +49,8 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
         pid1: instance.pid1,
         pid2: instance.pid2,
         proxy_id: instance.proxy_id,
+        service_id: instance.service_id || "",
+        status: instance.status,
       });
       setUseExistingProxy(true);
     } else {
@@ -158,6 +164,38 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
           {errors.instance_number && (
             <p className="text-sm text-destructive">{errors.instance_number}</p>
           )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="service_id">Serviço</Label>
+          <Select value={formData.service_id || ""} onValueChange={(value) => handleInputChange("service_id", value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione um serviço (opcional)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Nenhum serviço</SelectItem>
+              {services.map((service) => (
+                <SelectItem key={service.id} value={service.id}>
+                  {service.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="status">Estado *</Label>
+          <Select value={formData.status} onValueChange={(value) => handleInputChange("status", value as InstanceStatus)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Repouso">Repouso</SelectItem>
+              <SelectItem value="Aquecendo">Aquecendo</SelectItem>
+              <SelectItem value="Disparando">Disparando</SelectItem>
+              <SelectItem value="Banida">Banida</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="space-y-2">

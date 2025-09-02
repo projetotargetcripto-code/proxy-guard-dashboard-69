@@ -26,6 +26,13 @@ export function useInstances() {
             password,
             created_at,
             updated_at
+          ),
+          services (
+            id,
+            name,
+            description,
+            created_at,
+            updated_at
           )
         `)
         .order('instance_number', { ascending: true });
@@ -59,6 +66,13 @@ export function useInstances() {
             port,
             username,
             password,
+            created_at,
+            updated_at
+          ),
+          services (
+            id,
+            name,
+            description,
             created_at,
             updated_at
           )
@@ -100,6 +114,13 @@ export function useInstances() {
             port,
             username,
             password,
+            created_at,
+            updated_at
+          ),
+          services (
+            id,
+            name,
+            description,
             created_at,
             updated_at
           )

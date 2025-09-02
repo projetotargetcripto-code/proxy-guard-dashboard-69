@@ -105,13 +105,15 @@ export function InstanceTable({ instances, onEdit, onDelete }: InstanceTableProp
         <div className="overflow-x-auto">
           <div className="min-w-full">
             {/* Header */}
-            <div className="grid grid-cols-12 gap-4 p-4 bg-muted/20 border-b border-border/50 text-sm font-medium text-muted-foreground">
+            <div className="grid grid-cols-14 gap-4 p-4 bg-muted/20 border-b border-border/50 text-sm font-medium text-muted-foreground">
               <div className="col-span-1">#</div>
+              <div className="col-span-1">Serviço</div>
               <div className="col-span-2">Nome</div>
               <div className="col-span-1">PIDs</div>
               <div className="col-span-2">Proxy</div>
               <div className="col-span-2">Endereço</div>
               <div className="col-span-2">Credenciais</div>
+              <div className="col-span-1">Estado</div>
               <div className="col-span-1">Criado</div>
               <div className="col-span-1">Ações</div>
             </div>
@@ -120,12 +122,24 @@ export function InstanceTable({ instances, onEdit, onDelete }: InstanceTableProp
             {instances.map((instance) => (
               <div
                 key={instance.id}
-                className="grid grid-cols-12 gap-4 p-4 border-b border-border/20 hover:bg-muted/10 transition-colors"
+                className="grid grid-cols-14 gap-4 p-4 border-b border-border/20 hover:bg-muted/10 transition-colors"
               >
                 <div className="col-span-1">
                   <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                     {instance.instance_number}
                   </Badge>
+                </div>
+
+                <div className="col-span-1">
+                  <div className="space-y-1">
+                    <Badge 
+                      variant="outline" 
+                      className="bg-accent/10 text-accent border-accent/20 text-xs truncate" 
+                      title={instance.services?.name}
+                    >
+                      {instance.services?.name || 'N/A'}
+                    </Badge>
+                  </div>
                 </div>
 
                 <div className="col-span-2">
@@ -221,6 +235,20 @@ export function InstanceTable({ instances, onEdit, onDelete }: InstanceTableProp
                       )}
                     </div>
                   </div>
+                </div>
+
+                <div className="col-span-1">
+                  <Badge 
+                    variant={
+                      instance.status === 'Disparando' ? 'destructive' : 
+                      instance.status === 'Aquecendo' ? 'default' : 
+                      instance.status === 'Banida' ? 'outline' : 
+                      'secondary'
+                    }
+                    className="text-xs"
+                  >
+                    {instance.status}
+                  </Badge>
                 </div>
 
                 <div className="col-span-1">

@@ -3,15 +3,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InstanceForm } from "./InstanceForm";
 import { InstanceTable } from "./InstanceTable";
+import { ServiceForm } from "./ServiceForm";
+import { ServiceTable } from "./ServiceTable";
 import { PidTracker } from "./PidTracker";
 import { BulkImportForm } from "./BulkImportForm";
-import { Search, RotateCcw, Download, Plus, FileDown, Upload, LogOut } from "lucide-react";
+import { Search, RotateCcw, Download, Plus, FileDown, Upload, LogOut, Settings } from "lucide-react";
 import { useInstances } from "@/hooks/useInstances";
 import { useProxies } from "@/hooks/useProxies";
+import { useServices } from "@/hooks/useServices";
 import { useAuth } from "@/hooks/useAuth";
-import { Instance, CreateInstanceData, CreateProxyData } from "@/types/instance";
+import { Instance, CreateInstanceData, CreateProxyData, Service, CreateServiceData } from "@/types/instance";
 import { useToast } from "@/hooks/use-toast";
 import { downloadPpx } from "@/utils/ppx-generator";
 
@@ -21,6 +25,7 @@ export function InstanceDashboard() {
   const { user, signOut } = useAuth();
   const { instances, loading, createInstance, updateInstance, deleteInstance, updatePids, clearAllPids } = useInstances();
   const { createProxy } = useProxies();
+  const { services, createService, updateService, deleteService } = useServices();
   const { toast } = useToast();
   
   console.log("InstanceDashboard: Hooks loaded", { instances, loading });
@@ -29,6 +34,9 @@ export function InstanceDashboard() {
   const [isAddingInstance, setIsAddingInstance] = useState(false);
   const [editingInstance, setEditingInstance] = useState<Instance | null>(null);
   const [isBulkImporting, setIsBulkImporting] = useState(false);
+  const [isAddingService, setIsAddingService] = useState(false);
+  const [editingService, setEditingService] = useState<Service | null>(null);
+  const [activeTab, setActiveTab] = useState("instances");
 
   const handleAddInstance = async (instanceData: CreateInstanceData, proxyData?: CreateProxyData) => {
     try {
@@ -77,6 +85,32 @@ export function InstanceDashboard() {
       await deleteInstance(instanceId);
     } catch (error) {
       console.error("Error deleting instance:", error);
+    }
+  };
+
+  const handleAddService = async (serviceData: CreateServiceData) => {
+    try {
+      await createService(serviceData);
+      setIsAddingService(false);
+    } catch (error) {
+      console.error("Error creating service:", error);
+    }
+  };
+
+  const handleEditService = async (service: Service, serviceData: CreateServiceData) => {
+    try {
+      await updateService(service.id, serviceData);
+      setEditingService(null);
+    } catch (error) {
+      console.error("Error updating service:", error);
+    }
+  };
+
+  const handleDeleteService = async (serviceId: string) => {
+    try {
+      await deleteService(serviceId);
+    } catch (error) {
+      console.error("Error deleting service:", error);
     }
   };
 
@@ -161,6 +195,7 @@ export function InstanceDashboard() {
           pid1: instance.pid1,
           pid2: instance.pid2,
           proxy_id: newProxy.id,
+          status: "Repouso",
         };
 
         await createInstance(instanceData);
@@ -266,116 +301,179 @@ export function InstanceDashboard() {
           </div>
         </div>
 
-        {/* Actions Bar */}
-        <Card className="bg-card/50 backdrop-blur border-border/50">
-          <CardContent className="p-4">
-            <div className="flex flex-col lg:flex-row items-center gap-4">
-              {/* Search */}
-              <div className="relative flex-1 w-full">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Buscar por nome, número ou proxy..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-background/50 border-border/50"
-                />
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  onClick={handleGeneratePpx}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold shadow-lg"
-                >
-                  <FileDown className="h-4 w-4 mr-2" />
-                  Gerar PPX
-                </Button>
-
-                <Button
-                  variant="outline"
-                  onClick={handleClearAllPids}
-                  className="border-destructive/20 text-destructive hover:bg-destructive/10"
-                >
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Limpar PIDs
-                </Button>
-
-                <PidTracker
-                  instances={instances}
-                  onUpdatePids={handleUpdatePids}
-                />
-
-                <Button
-                  variant="outline"
-                  onClick={handleExportToSpreadsheet}
-                  className="border-accent/20 text-accent hover:bg-accent/10"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Exportar
-                </Button>
-
-                <Button
-                  variant="outline"
-                  onClick={() => setIsBulkImporting(true)}
-                  className="border-secondary/20 text-secondary hover:bg-secondary/10"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Importar em Massa
-                </Button>
-
-                <Button
-                  onClick={() => setIsAddingInstance(true)}
-                  className="bg-gradient-golden hover:shadow-golden"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Adicionar Instância
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Main Content */}
-        {isBulkImporting ? (
-          <Card className="bg-card/80 backdrop-blur border-border/50">
-            <CardContent className="p-6">
-              <BulkImportForm
-                onSubmit={handleBulkImport}
-                onCancel={() => setIsBulkImporting(false)}
+        <Tabs defaultValue="instances" className="w-full" onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="instances">Instâncias</TabsTrigger>
+            <TabsTrigger value="services">Serviços</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="instances">
+            {/* Actions Bar */}
+            <Card className="bg-card/50 backdrop-blur border-border/50 mb-6">
+              <CardContent className="p-4">
+                <div className="flex flex-col lg:flex-row items-center gap-4">
+                  {/* Search */}
+                  <div className="relative flex-1 w-full">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input
+                      placeholder="Buscar por nome, número ou proxy..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 bg-background/50 border-border/50"
+                    />
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      onClick={handleGeneratePpx}
+                      className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold shadow-lg"
+                    >
+                      <FileDown className="h-4 w-4 mr-2" />
+                      Gerar PPX
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      onClick={handleClearAllPids}
+                      className="border-destructive/20 text-destructive hover:bg-destructive/10"
+                    >
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      Limpar PIDs
+                    </Button>
+
+                    <PidTracker
+                      instances={instances}
+                      onUpdatePids={handleUpdatePids}
+                    />
+
+                    <Button
+                      variant="outline"
+                      onClick={handleExportToSpreadsheet}
+                      className="border-accent/20 text-accent hover:bg-accent/10"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Exportar
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsBulkImporting(true)}
+                      className="border-secondary/20 text-secondary hover:bg-secondary/10"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Importar em Massa
+                    </Button>
+
+                    <Button
+                      onClick={() => setIsAddingInstance(true)}
+                      className="bg-gradient-golden hover:shadow-golden"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Adicionar Instância
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Instance Content */}
+            {isBulkImporting ? (
+              <Card className="bg-card/80 backdrop-blur border-border/50">
+                <CardContent className="p-6">
+                  <BulkImportForm
+                    onSubmit={handleBulkImport}
+                    onCancel={() => setIsBulkImporting(false)}
+                  />
+                </CardContent>
+              </Card>
+            ) : isAddingInstance || editingInstance ? (
+              <Card className="bg-card/80 backdrop-blur border-border/50">
+                <CardHeader>
+                  <CardTitle className="text-primary">
+                    {editingInstance ? "Editar Instância" : "Nova Instância"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <InstanceForm
+                    instance={editingInstance}
+                    onSubmit={(data, proxyData) => {
+                      if (editingInstance) {
+                        handleEditInstance(editingInstance, data, proxyData);
+                      } else {
+                        handleAddInstance(data, proxyData);
+                      }
+                    }}
+                    onCancel={() => {
+                      setIsAddingInstance(false);
+                      setEditingInstance(null);
+                    }}
+                  />
+                </CardContent>
+              </Card>
+            ) : (
+              <InstanceTable
+                instances={filteredInstances}
+                onEdit={setEditingInstance}
+                onDelete={handleDeleteInstance}
               />
-            </CardContent>
-          </Card>
-        ) : isAddingInstance || editingInstance ? (
-          <Card className="bg-card/80 backdrop-blur border-border/50">
-            <CardHeader>
-              <CardTitle className="text-primary">
-                {editingInstance ? "Editar Instância" : "Nova Instância"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <InstanceForm
-                instance={editingInstance}
-                onSubmit={(data, proxyData) => {
-                  if (editingInstance) {
-                    handleEditInstance(editingInstance, data, proxyData);
-                  } else {
-                    handleAddInstance(data, proxyData);
-                  }
-                }}
-                onCancel={() => {
-                  setIsAddingInstance(false);
-                  setEditingInstance(null);
-                }}
+            )}
+          </TabsContent>
+
+          <TabsContent value="services">
+            {/* Services Actions */}
+            <Card className="bg-card/50 backdrop-blur border-border/50 mb-6">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-primary">
+                    Gerenciar Serviços
+                  </h3>
+                  <Button
+                    onClick={() => setIsAddingService(true)}
+                    className="bg-gradient-golden hover:shadow-golden"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar Serviço
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Services Content */}
+            {isAddingService || editingService ? (
+              <Card className="bg-card/80 backdrop-blur border-border/50">
+                <CardHeader>
+                  <CardTitle className="text-primary">
+                    {editingService ? "Editar Serviço" : "Novo Serviço"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ServiceForm
+                    service={editingService}
+                    onSubmit={(data) => {
+                      if (editingService) {
+                        handleEditService(editingService, data);
+                      } else {
+                        handleAddService(data);
+                      }
+                    }}
+                    onCancel={() => {
+                      setIsAddingService(false);
+                      setEditingService(null);
+                    }}
+                  />
+                </CardContent>
+              </Card>
+            ) : (
+              <ServiceTable
+                services={services}
+                onEdit={setEditingService}
+                onDelete={handleDeleteService}
               />
-            </CardContent>
-          </Card>
-        ) : (
-          <InstanceTable
-            instances={filteredInstances}
-            onEdit={setEditingInstance}
-            onDelete={handleDeleteInstance}
-          />
-        )}
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
