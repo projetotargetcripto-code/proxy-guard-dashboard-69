@@ -1,275 +1,189 @@
-import { useState, useRef, useEffect } from "react";
-import { Plus, Upload, Download, Search, Edit, Trash2, Eye, EyeOff, Save } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { InstanceTable } from "./InstanceTable";
 import { InstanceForm } from "./InstanceForm";
+import { InstanceTable } from "./InstanceTable";
 import { PidTracker } from "./PidTracker";
-import { Instance, CreateInstanceData } from "@/types/instance";
+import { Search, RotateCcw, Download, Plus } from "lucide-react";
+import { useInstances } from "@/hooks/useInstances";
+import { useProxies } from "@/hooks/useProxies";
+import { Instance, CreateInstanceData, CreateProxyData } from "@/types/instance";
+import { useToast } from "@/hooks/use-toast";
 
 export function InstanceDashboard() {
-  const [instances, setInstances] = useState<Instance[]>([]);
+  const { instances, loading, createInstance, updateInstance, deleteInstance, updatePids, clearAllPids } = useInstances();
+  const { createProxy } = useProxies();
+  const { toast } = useToast();
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddingInstance, setIsAddingInstance] = useState(false);
   const [editingInstance, setEditingInstance] = useState<Instance | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
 
-  // Load instances from localStorage on component mount
-  useEffect(() => {
-    const savedInstances = localStorage.getItem('proxy-instances');
-    if (savedInstances) {
-      try {
-        const parsedInstances = JSON.parse(savedInstances).map((inst: any) => ({
-          ...inst,
-          createdAt: new Date(inst.createdAt),
-          updatedAt: new Date(inst.updatedAt),
-        }));
-        setInstances(parsedInstances);
-      } catch (error) {
-        console.error('Erro ao carregar instâncias do localStorage:', error);
+  const handleAddInstance = async (instanceData: CreateInstanceData, proxyData?: CreateProxyData) => {
+    try {
+      let proxyId = instanceData.proxy_id;
+      
+      // If creating a new proxy, create it first
+      if (proxyData) {
+        const newProxy = await createProxy(proxyData);
+        proxyId = newProxy.id;
       }
+
+      await createInstance({
+        ...instanceData,
+        proxy_id: proxyId,
+      });
+
+      setIsAddingInstance(false);
+    } catch (error) {
+      console.error("Error creating instance:", error);
     }
-  }, []);
-
-  const saveInstances = (instancesData: Instance[]) => {
-    localStorage.setItem('proxy-instances', JSON.stringify(instancesData));
   };
 
-  const handleSave = () => {
-    saveInstances(instances);
-    toast({
-      title: "Dados salvos",
-      description: "Todas as instâncias foram salvas com sucesso.",
-    });
+  const handleEditInstance = async (instance: Instance, instanceData: CreateInstanceData, proxyData?: CreateProxyData) => {
+    try {
+      let proxyId = instanceData.proxy_id;
+      
+      // If creating a new proxy, create it first
+      if (proxyData) {
+        const newProxy = await createProxy(proxyData);
+        proxyId = newProxy.id;
+      }
+
+      await updateInstance(instance.id, {
+        ...instanceData,
+        proxy_id: proxyId,
+      });
+
+      setEditingInstance(null);
+    } catch (error) {
+      console.error("Error updating instance:", error);
+    }
   };
 
-  const handleAddInstance = (data: CreateInstanceData) => {
-    const newInstance: Instance = {
-      id: crypto.randomUUID(),
-      instanceNumber: instances.length + 1,
-      ...data,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    setInstances(prev => [...prev, newInstance]);
-    setIsAddingInstance(false);
-    
-    toast({
-      title: "Instância adicionada",
-      description: `${data.instanceName} foi adicionada com sucesso.`,
-    });
+  const handleDeleteInstance = async (instanceId: string) => {
+    try {
+      await deleteInstance(instanceId);
+    } catch (error) {
+      console.error("Error deleting instance:", error);
+    }
   };
 
-  const handleEditInstance = (instance: Instance, data: CreateInstanceData) => {
-    const updatedInstance: Instance = {
-      ...instance,
-      ...data,
-      updatedAt: new Date(),
-    };
-
-    setInstances(prev => 
-      prev.map(inst => inst.id === instance.id ? updatedInstance : inst)
-    );
-    setEditingInstance(null);
-    
-    toast({
-      title: "Instância atualizada",
-      description: `${data.instanceName} foi atualizada com sucesso.`,
-    });
+  const handleClearAllPids = async () => {
+    try {
+      await clearAllPids();
+    } catch (error) {
+      console.error("Error clearing PIDs:", error);
+    }
   };
 
-  const handleDeleteInstance = (instanceId: string) => {
-    setInstances(prev => prev.filter(inst => inst.id !== instanceId));
-    toast({
-      title: "Instância removida",
-      description: "A instância foi removida com sucesso.",
-    });
-  };
-
-  const handleClearAllPids = () => {
-    setInstances(prev => 
-      prev.map(instance => ({
-        ...instance,
-        pid1: '0000',
-        pid2: '0000',
-        updatedAt: new Date(),
-      }))
-    );
-    toast({
-      title: "PIDs zerados",
-      description: "Todos os PIDs foram zerados com sucesso.",
-    });
-  };
-
-  const handleUpdatePids = (pidUpdates: { instanceId: string; pid1: string; pid2: string }[]) => {
-    setInstances(prev => 
-      prev.map(instance => {
-        const update = pidUpdates.find(u => u.instanceId === instance.id);
-        if (update) {
-          return {
-            ...instance,
-            pid1: update.pid1,
-            pid2: update.pid2,
-            updatedAt: new Date(),
-          };
-        }
-        return instance;
-      })
-    );
+  const handleUpdatePids = async (pidUpdates: { instanceId: string; pid1: string; pid2: string }[]) => {
+    try {
+      await updatePids(pidUpdates);
+    } catch (error) {
+      console.error("Error updating PIDs:", error);
+      toast({
+        title: "Erro ao atualizar PIDs",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleExportToSpreadsheet = () => {
-    const csvContent = [
-      ["Número", "Nome", "PID 1", "PID 2", "Nome Proxy", "IP Proxy", "Porta Proxy", "Login Proxy", "Senha Proxy", "Criado em", "Atualizado em"],
-      ...instances.map(inst => [
-        inst.instanceNumber,
-        inst.instanceName,
-        inst.pid1,
-        inst.pid2,
-        inst.proxyName,
-        inst.proxyIp,
-        inst.proxyPort,
-        inst.proxyLogin,
-        inst.proxyPassword,
-        inst.createdAt.toLocaleDateString('pt-BR'),
-        inst.updatedAt.toLocaleDateString('pt-BR')
-      ])
-    ].map(row => row.join(",")).join("\n");
+    const csvHeader = "Número,Nome,PID1,PID2,Proxy Nome,Proxy IP,Proxy Porta,Proxy Username,Data Criação\n";
+    const csvData = filteredInstances.map(instance => {
+      const proxy = instance.proxies;
+      return [
+        instance.instance_number,
+        `"${instance.instance_name}"`,
+        instance.pid1,
+        instance.pid2,
+        proxy ? `"${proxy.name}"` : "",
+        proxy ? proxy.ip : "",
+        proxy ? proxy.port : "",
+        proxy ? `"${proxy.username}"` : "",
+        new Date(instance.created_at).toLocaleDateString('pt-BR'),
+      ].join(",");
+    }).join("\n");
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const csv = csvHeader + csvData;
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `instancias_${new Date().toISOString().split('T')[0]}.csv`;
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `instancias_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
 
     toast({
-      title: "Dados exportados",
-      description: "As instâncias foram exportadas para planilha.",
+      title: "Exportação realizada com sucesso",
+      description: "Os dados foram exportados para um arquivo CSV.",
     });
   };
 
-  const handleImportFromSpreadsheet = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const text = e.target?.result as string;
-        const lines = text.split('\n');
-        const headers = lines[0].split(',');
-        
-        const importedInstances: Instance[] = [];
-        
-        for (let i = 1; i < lines.length; i++) {
-          const values = lines[i].split(',');
-          if (values.length >= 9) {
-            const newInstance: Instance = {
-              id: crypto.randomUUID(),
-              instanceNumber: parseInt(values[0]) || instances.length + importedInstances.length + 1,
-              instanceName: values[1] || '',
-              pid1: values[2] || '',
-              pid2: values[3] || '',
-              proxyName: values[4] || '',
-              proxyIp: values[5] || '',
-              proxyPort: parseInt(values[6]) || 0,
-              proxyLogin: values[7] || '',
-              proxyPassword: values[8] || '',
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            };
-            importedInstances.push(newInstance);
-          }
-        }
-
-        setInstances(prev => [...prev, ...importedInstances]);
-        toast({
-          title: "Dados importados",
-          description: `${importedInstances.length} instâncias foram importadas da planilha.`,
-        });
-      } catch (error) {
-        toast({
-          title: "Erro na importação",
-          description: "Não foi possível importar os dados da planilha.",
-          variant: "destructive",
-        });
-      }
-    };
-    reader.readAsText(file);
-    
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
   const filteredInstances = instances.filter(instance =>
-    instance.instanceName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    instance.proxyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    instance.proxyIp.includes(searchTerm)
+    instance.instance_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    instance.instance_number.toString().includes(searchTerm) ||
+    (instance.proxies?.name || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+          <p className="mt-4 text-muted-foreground">Carregando instâncias...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-dark p-6">
-      <div className="mx-auto max-w-7xl space-y-6">
+      <div className="mx-auto max-w-7xl space-y-8">
         {/* Header */}
-        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-golden bg-clip-text text-transparent">
-              Proxy Guard Dashboard
-            </h1>
-            <p className="text-muted-foreground mt-2">
-              Gerencie suas instâncias de proxy com facilidade
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="px-3 py-1">
-              {instances.length} instâncias
+        <div className="text-center space-y-4">
+          <h1 className="text-4xl font-bold bg-gradient-golden bg-clip-text text-transparent">
+            Dashboard de Instâncias
+          </h1>
+          <div className="flex items-center justify-center gap-2">
+            <Badge variant="outline" className="bg-card border-primary/20 text-primary">
+              {instances.length} instância{instances.length !== 1 ? 's' : ''} configurada{instances.length !== 1 ? 's' : ''}
+            </Badge>
+            <Badge variant="outline" className="bg-card border-accent/20 text-accent">
+              {filteredInstances.length} visível{filteredInstances.length !== 1 ? 'is' : ''}
             </Badge>
           </div>
         </div>
 
         {/* Actions Bar */}
-        <Card className="border-border/50 shadow-elegant">
-          <CardContent className="p-6">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="flex flex-1 items-center gap-4">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar por nome, proxy ou IP..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+        <Card className="bg-card/50 backdrop-blur border-border/50">
+          <CardContent className="p-4">
+            <div className="flex flex-col lg:flex-row items-center gap-4">
+              {/* Search */}
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Buscar por nome, número ou proxy..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-background/50 border-border/50"
+                />
               </div>
 
-              <div className="flex items-center gap-2">
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleSave}
-                  className="bg-gradient-to-r from-primary/20 to-primary/30 hover:from-primary/30 hover:to-primary/40"
-                >
-                  <Save className="mr-2 h-4 w-4" />
-                  Salvar
-                </Button>
-
-                <Button
-                  variant="destructive"
-                  size="sm"
+                  variant="outline"
                   onClick={handleClearAllPids}
-                  disabled={instances.length === 0}
-                  className="hover:shadow-destructive"
+                  className="border-destructive/20 text-destructive hover:bg-destructive/10"
                 >
-                  ZERAR PID
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Limpar PIDs
                 </Button>
 
                 <PidTracker
@@ -279,53 +193,43 @@ export function InstanceDashboard() {
 
                 <Button
                   variant="outline"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="border-primary/20 hover:border-primary/40"
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Importar
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
                   onClick={handleExportToSpreadsheet}
-                  disabled={instances.length === 0}
-                  className="border-primary/20 hover:border-primary/40"
+                  className="border-accent/20 text-accent hover:bg-accent/10"
                 >
-                  <Download className="mr-2 h-4 w-4" />
+                  <Download className="h-4 w-4 mr-2" />
                   Exportar
                 </Button>
 
                 <Button
-                  size="sm"
                   onClick={() => setIsAddingInstance(true)}
                   className="bg-gradient-golden hover:shadow-golden"
                 >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Nova Instância
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Instância
                 </Button>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Content */}
+        {/* Main Content */}
         {isAddingInstance || editingInstance ? (
-          <Card className="border-border/50 shadow-elegant">
+          <Card className="bg-card/80 backdrop-blur border-border/50">
             <CardHeader>
               <CardTitle className="text-primary">
-                {editingInstance ? 'Editar Instância' : 'Nova Instância'}
+                {editingInstance ? "Editar Instância" : "Nova Instância"}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <InstanceForm
                 instance={editingInstance}
-                onSubmit={editingInstance ? 
-                  (data) => handleEditInstance(editingInstance, data) : 
-                  handleAddInstance
-                }
+                onSubmit={(data, proxyData) => {
+                  if (editingInstance) {
+                    handleEditInstance(editingInstance, data, proxyData);
+                  } else {
+                    handleAddInstance(data, proxyData);
+                  }
+                }}
                 onCancel={() => {
                   setIsAddingInstance(false);
                   setEditingInstance(null);
@@ -340,15 +244,6 @@ export function InstanceDashboard() {
             onDelete={handleDeleteInstance}
           />
         )}
-
-        {/* Hidden file input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".csv,.xlsx,.xls"
-          onChange={handleImportFromSpreadsheet}
-          className="hidden"
-        />
       </div>
     </div>
   );

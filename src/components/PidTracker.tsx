@@ -1,30 +1,17 @@
 import { useState } from "react";
-import { Activity, Send, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Search, ArrowRight, Check } from "lucide-react";
 import { Instance } from "@/types/instance";
 
 interface PidData {
   instanceNumber: number;
-  pid1: string; // MEmu.exe
-  pid2: string; // MEmuHeadless.exe
+  pid1: string;
+  pid2: string;
 }
 
 interface PidTrackerProps {
@@ -34,130 +21,73 @@ interface PidTrackerProps {
 
 export function PidTracker({ instances, onUpdatePids }: PidTrackerProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [step, setStep] = useState<'input' | 'assign'>('input');
-  const [pidText, setPidText] = useState("");
+  const [step, setStep] = useState<'input' | 'assignment'>('input');
+  const [pidText, setPidText] = useState('');
   const [parsedPids, setParsedPids] = useState<PidData[]>([]);
   const [assignments, setAssignments] = useState<Record<number, string>>({});
-  const { toast } = useToast();
 
   const parsePidText = (text: string): PidData[] => {
-    try {
-      const blocks = text.split('-------------------------------').filter(block => block.trim());
-      const pidData: PidData[] = [];
+    const lines = text.split('\n');
+    const pidData: PidData[] = [];
+    let currentInstance: number | null = null;
+    let memuPid = '';
+    let headlessPid = '';
 
-      blocks.forEach(block => {
-        const lines = block.trim().split('\n').filter(line => line.trim());
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      
+      if (trimmedLine.includes('Instância') && trimmedLine.includes('MEmu.exe')) {
+        const instanceMatch = trimmedLine.match(/Instância (\d+)/);
+        const pidMatch = trimmedLine.match(/PID: (\d+)/);
         
-        if (lines.length >= 2) {
-          let instanceNumber = 0;
-          let pid1 = '';
-          let pid2 = '';
-
-          lines.forEach(line => {
-            const instanceMatch = line.match(/Instância (\d+)/);
-            const pidMatch = line.match(/PID: (\d+)/);
-
-            if (instanceMatch) {
-              instanceNumber = parseInt(instanceMatch[1]);
-            }
-
-            if (pidMatch && line.includes('MEmu.exe')) {
-              pid1 = pidMatch[1];
-            } else if (pidMatch && line.includes('MEmuHeadless.exe')) {
-              pid2 = pidMatch[1];
-            }
-          });
-
-          if (instanceNumber > 0 && pid1 && pid2) {
-            pidData.push({
-              instanceNumber,
-              pid1,
-              pid2
-            });
-          }
+        if (instanceMatch && pidMatch) {
+          currentInstance = parseInt(instanceMatch[1]);
+          memuPid = pidMatch[1];
         }
-      });
-
-      return pidData;
-    } catch (error) {
-      console.error('Erro ao fazer parse dos PIDs:', error);
-      return [];
+      } else if (trimmedLine.includes('Instância') && trimmedLine.includes('MEmuHeadless.exe')) {
+        const pidMatch = trimmedLine.match(/PID: (\d+)/);
+        
+        if (pidMatch && currentInstance !== null) {
+          headlessPid = pidMatch[1];
+          
+          pidData.push({
+            instanceNumber: currentInstance,
+            pid1: memuPid,
+            pid2: headlessPid,
+          });
+          
+          currentInstance = null;
+          memuPid = '';
+          headlessPid = '';
+        }
+      }
     }
+
+    return pidData;
   };
 
   const handleSubmitText = () => {
-    if (!pidText.trim()) {
-      toast({
-        title: "Erro",
-        description: "Por favor, cole os dados dos PIDs.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     const parsed = parsePidText(pidText);
-    
-    if (parsed.length === 0) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível extrair os PIDs do texto fornecido.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setParsedPids(parsed);
-    setStep('assign');
-    
-    toast({
-      title: "PIDs extraídos",
-      description: `${parsed.length} instâncias com PIDs foram encontradas.`,
-    });
+    setStep('assignment');
   };
 
   const handleAssignmentChange = (pidInstanceNumber: number, targetInstanceId: string) => {
     setAssignments(prev => ({
       ...prev,
-      [pidInstanceNumber]: targetInstanceId
+      [pidInstanceNumber]: targetInstanceId,
     }));
   };
 
   const handleApplyPids = () => {
-    const updates: { instanceId: string; pid1: string; pid2: string }[] = [];
-
-    Object.entries(assignments).forEach(([pidInstanceNumber, targetInstanceId]) => {
-      const pidData = parsedPids.find(p => p.instanceNumber === parseInt(pidInstanceNumber));
-      if (pidData && targetInstanceId) {
-        updates.push({
-          instanceId: targetInstanceId,
-          pid1: pidData.pid1,
-          pid2: pidData.pid2
-        });
-      }
-    });
-
-    if (updates.length === 0) {
-      toast({
-        title: "Erro",
-        description: "Nenhuma associação foi feita.",
-        variant: "destructive",
-      });
-      return;
-    }
+    const updates = Object.entries(assignments).map(([pidInstanceNumber, targetInstanceId]) => ({
+      instanceId: targetInstanceId,
+      pid1: parsedPids.find(p => p.instanceNumber === parseInt(pidInstanceNumber))?.pid1 || '0000',
+      pid2: parsedPids.find(p => p.instanceNumber === parseInt(pidInstanceNumber))?.pid2 || '0000',
+    })).filter(update => update.instanceId !== '');
 
     onUpdatePids(updates);
-    
-    // Reset state
-    setIsOpen(false);
-    setStep('input');
-    setPidText('');
-    setParsedPids([]);
-    setAssignments({});
-    
-    toast({
-      title: "PIDs atualizados",
-      description: `${updates.length} instâncias foram atualizadas com sucesso.`,
-    });
+    handleClose();
   };
 
   const handleClose = () => {
@@ -169,122 +99,106 @@ export function PidTracker({ instances, onUpdatePids }: PidTrackerProps) {
   };
 
   return (
-    <>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setIsOpen(true)}
-        className="border-primary/20 hover:border-primary/40"
-      >
-        <Activity className="mr-2 h-4 w-4" />
-        Rastrear PID
-      </Button>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="border-accent/20 text-accent hover:bg-accent/10">
+          <Search className="h-4 w-4 mr-2" />
+          Rastrear PID
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Rastreamento de PIDs</DialogTitle>
+        </DialogHeader>
 
-      <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-primary">
-              {step === 'input' ? 'Rastrear PIDs' : 'Associar PIDs às Instâncias'}
-            </DialogTitle>
-          </DialogHeader>
-
-          {step === 'input' && (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="pid-text" className="text-sm font-medium">
-                  Cole aqui os dados dos PIDs das instâncias:
-                </Label>
+        {step === 'input' ? (
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Cole o texto dos PIDs</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <Textarea
-                  id="pid-text"
                   value={pidText}
                   onChange={(e) => setPidText(e.target.value)}
-                  placeholder="Cole aqui o texto com os dados das instâncias e PIDs..."
-                  className="min-h-[300px] mt-2"
+                  placeholder="Cole aqui o texto com as informações dos PIDs..."
+                  rows={15}
+                  className="font-mono text-sm"
                 />
-              </div>
-              
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={handleClose}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleSubmitText}>
-                  <Send className="mr-2 h-4 w-4" />
-                  Processar PIDs
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {step === 'assign' && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setStep('input')}
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  Associe os PIDs extraídos às suas instâncias
-                </span>
-              </div>
-
-              <div className="grid gap-4 max-h-[400px] overflow-y-auto">
-                {parsedPids.map((pidData) => (
-                  <Card key={pidData.instanceNumber} className="border-border/50">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg text-primary">
-                        Instância Rastreada #{pidData.instanceNumber}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">PID 1 (MEmu.exe):</span>
-                          <span className="ml-2 font-mono font-bold text-primary">{pidData.pid1}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">PID 2 (MEmuHeadless.exe):</span>
-                          <span className="ml-2 font-mono font-bold text-primary">{pidData.pid2}</span>
-                        </div>
+                <div className="flex justify-between">
+                  <Button variant="outline" onClick={handleClose}>
+                    Cancelar
+                  </Button>
+                  <Button 
+                    onClick={handleSubmitText}
+                    disabled={!pidText.trim()}
+                    className="bg-gradient-golden"
+                  >
+                    Analisar PIDs
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">
+                  PIDs Detectados ({parsedPids.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {parsedPids.map((pid) => (
+                    <div key={pid.instanceNumber} className="flex items-center gap-4 p-3 border rounded-lg">
+                      <Badge variant="outline" className="min-w-[80px]">
+                        Instância {pid.instanceNumber}
+                      </Badge>
+                      <div className="flex gap-2">
+                        <Badge variant="secondary">PID1: {pid.pid1}</Badge>
+                        <Badge variant="secondary">PID2: {pid.pid2}</Badge>
                       </div>
-                      
-                      <div>
-                        <Label className="text-sm">Associar à instância:</Label>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                      <div className="flex-1">
                         <Select
-                          value={assignments[pidData.instanceNumber] || ''}
-                          onValueChange={(value) => handleAssignmentChange(pidData.instanceNumber, value)}
+                          value={assignments[pid.instanceNumber] || ''}
+                          onValueChange={(value) => handleAssignmentChange(pid.instanceNumber, value)}
                         >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Selecione uma instância..." />
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecionar instância" />
                           </SelectTrigger>
                           <SelectContent>
                             {instances.map((instance) => (
                               <SelectItem key={instance.id} value={instance.id}>
-                                {instance.instanceName} (#{instance.instanceNumber})
+                                {instance.instance_name} (#{instance.instance_number})
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button variant="outline" onClick={() => setStep('input')}>
-                  Voltar
-                </Button>
-                <Button onClick={handleApplyPids} className="bg-gradient-golden">
-                  Aplicar PIDs
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex justify-between mt-4">
+                  <Button variant="outline" onClick={() => setStep('input')}>
+                    Voltar
+                  </Button>
+                  <Button 
+                    onClick={handleApplyPids}
+                    disabled={Object.keys(assignments).length === 0}
+                    className="bg-gradient-golden"
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    Aplicar PIDs ({Object.keys(assignments).length})
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
