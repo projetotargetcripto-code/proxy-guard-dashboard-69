@@ -100,19 +100,19 @@ export function InstanceDashboard() {
   };
 
   const handleExportToSpreadsheet = () => {
-    const csvHeader = "Número,Nome,PID1,PID2,Proxy Nome,Proxy IP,Proxy Porta,Proxy Username,Data Criação\n";
+    const csvHeader = "instance_name,instance_number,pid1,pid2,proxy_name,proxy_ip,proxy_port,proxy_username,proxy_password\n";
     const csvData = filteredInstances.map(instance => {
       const proxy = instance.proxies;
       return [
-        instance.instance_number,
         `"${instance.instance_name}"`,
+        instance.instance_number,
         instance.pid1,
         instance.pid2,
         proxy ? `"${proxy.name}"` : "",
         proxy ? proxy.ip : "",
         proxy ? proxy.port : "",
         proxy ? `"${proxy.username}"` : "",
-        new Date(instance.created_at).toLocaleDateString('pt-BR'),
+        proxy ? `"${proxy.password}"` : "",
       ].join(",");
     }).join("\n");
 
