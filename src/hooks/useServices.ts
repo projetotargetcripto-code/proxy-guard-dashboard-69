@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Service, CreateServiceData } from "@/types/instance";
 import { useToast } from "@/hooks/use-toast";
@@ -8,7 +8,7 @@ export function useServices() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchServices = async () => {
+  const fetchServices = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('services')
@@ -27,7 +27,7 @@ export function useServices() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   const createService = async (serviceData: CreateServiceData) => {
     try {
@@ -113,7 +113,7 @@ export function useServices() {
 
   useEffect(() => {
     fetchServices();
-  }, []);
+  }, [fetchServices]);
 
   return {
     services,

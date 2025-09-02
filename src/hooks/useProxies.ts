@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Proxy, CreateProxyData } from "@/types/instance";
 import { useToast } from "@/hooks/use-toast";
@@ -8,7 +8,7 @@ export function useProxies() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchProxies = async () => {
+  const fetchProxies = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('proxies')
@@ -27,7 +27,7 @@ export function useProxies() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   const createProxy = async (proxyData: CreateProxyData) => {
     try {
@@ -113,7 +113,7 @@ export function useProxies() {
 
   useEffect(() => {
     fetchProxies();
-  }, []);
+  }, [fetchProxies]);
 
   return {
     proxies,

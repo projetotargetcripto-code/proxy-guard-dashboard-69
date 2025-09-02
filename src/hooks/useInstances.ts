@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Instance, CreateInstanceData } from "@/types/instance";
+import { Instance, CreateInstanceData, InstanceStatus } from "@/types/instance";
 import { useToast } from "@/hooks/use-toast";
 
 export function useInstances() {
@@ -10,7 +10,7 @@ export function useInstances() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchInstances = async () => {
+  const fetchInstances = useCallback(async () => {
     console.log("useInstances: Fetching instances from Supabase");
     try {
       const { data, error } = await supabase
@@ -50,7 +50,7 @@ export function useInstances() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   const createInstance = async (instanceData: CreateInstanceData) => {
     try {
@@ -172,6 +172,34 @@ export function useInstances() {
     }
   };
 
+  const bulkUpdateInstances = async (
+    ids: string[],
+    data: { service_id: string | null; status: InstanceStatus }
+  ) => {
+    try {
+      const { error } = await supabase
+        .from('instances')
+        .update(data)
+        .in('id', ids);
+
+      if (error) throw error;
+
+      await fetchInstances();
+      toast({
+        title: "Instâncias atualizadas com sucesso",
+        description: `${ids.length} instância(s) foram atualizadas.`,
+      });
+    } catch (error) {
+      console.error('Error bulk updating instances:', error);
+      toast({
+        title: "Erro ao atualizar instâncias",
+        description: "Não foi possível atualizar as instâncias.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
   const updatePids = async (pidUpdates: { instanceId: string; pid1: string; pid2: string }[]) => {
     try {
       const promises = pidUpdates.map(update =>
@@ -230,9 +258,9 @@ export function useInstances() {
     }
   };
 
-  useEffect(() => {
-    fetchInstances();
-  }, []);
+    useEffect(() => {
+      fetchInstances();
+    }, [fetchInstances]);
 
   return {
     instances,
@@ -241,6 +269,7 @@ export function useInstances() {
     updateInstance,
     deleteInstance,
     updatePids,
+    bulkUpdateInstances,
     clearAllPids,
     refetch: fetchInstances,
   };
