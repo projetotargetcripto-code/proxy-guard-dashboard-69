@@ -53,11 +53,11 @@ const PPX_TEMPLATE = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 		<!-- END:DYNAMIC_RULE_LIST -->
 
 		<!-- STATIC: Regra default sempre apontando para CONECTANDO (id 104). Não remover. -->
-		<Rule enabled="true">
-			<Action type="Proxy">104</Action>
-			<Name>CONECTANDO (Default)</Name>
-		</Rule>
-	</RuleList>
+                <Rule enabled="true">
+                        <Action type="Proxy">104</Action>
+                        <Name>Default</Name>
+                </Rule>
+        </RuleList>
 </ProxifierProfile>`;
 
 interface InstanceRow {
