@@ -14,10 +14,12 @@ export async function sendToApi(data: WebhookData): Promise<{ success: boolean; 
     const formBody = new URLSearchParams(data as Record<string, string>).toString();
     const response = await fetch('https://webhook.site/96185f74-ccf8-4346-87dd-79ad87de924a', {
       method: 'POST',
+      mode: 'cors',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: formBody,
+      credentials: 'include',
     });
 
     if (!response.ok) {
