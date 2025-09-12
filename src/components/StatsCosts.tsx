@@ -26,7 +26,9 @@ export function StatsCosts({ instances }: StatsCostsProps) {
   }, {} as Record<InstanceStatus, number>);
 
   const activeInstancesCount =
-    (statusCounts["Aquecendo"] || 0) + (statusCounts["Disparando"] || 0);
+    (statusCounts["Repouso"] || 0) +
+    (statusCounts["Disparando"] || 0) +
+    (statusCounts["Aquecendo"] || 0);
 
   // Custos fixos
   const FIXED_COSTS = {
