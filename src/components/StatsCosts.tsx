@@ -17,6 +17,9 @@ export function StatsCosts({ instances }: StatsCostsProps) {
     return acc;
   }, {} as Record<InstanceStatus, number>);
 
+  const activeInstancesCount =
+    (statusCounts["Aquecendo"] || 0) + (statusCounts["Disparando"] || 0);
+
   // Custos fixos
   const FIXED_COSTS = {
     serverMonthly: 80, // USD
@@ -27,7 +30,8 @@ export function StatsCosts({ instances }: StatsCostsProps) {
   // Custos por instância
   const INSTANCE_COSTS = {
     ipCost: 4, // USD per IP
-    chipCost: 30, // BRL per chip
+    chipPurchase: 30, // BRL per chip (one-time)
+    chipQuarterly: 30, // BRL per active chip every 3 months
   };
 
   // Taxa de câmbio assumida (pode ser dinamizada futuramente)
@@ -35,13 +39,21 @@ export function StatsCosts({ instances }: StatsCostsProps) {
 
   // Calcular custos totais
   const monthlyIpCosts = totalInstances * INSTANCE_COSTS.ipCost; // USD
-  const monthlyChipCosts = totalInstances * INSTANCE_COSTS.chipCost; // BRL
+  const chipPurchaseCosts = totalInstances * INSTANCE_COSTS.chipPurchase; // BRL
+  const monthlyChipRecurringCosts =
+    activeInstancesCount * (INSTANCE_COSTS.chipQuarterly / 3); // BRL
   const monthlyFixedCostsBRL = FIXED_COSTS.serverMonthly * USD_TO_BRL; // Converter servidor para BRL
 
-  const totalMonthlyCostsBRL = monthlyFixedCostsBRL + monthlyChipCosts + (monthlyIpCosts * USD_TO_BRL);
-  
+  const totalMonthlyCostsBRL =
+    monthlyFixedCostsBRL +
+    monthlyChipRecurringCosts +
+    monthlyIpCosts * USD_TO_BRL;
+
   // Custos únicos em BRL
-  const oneTimeCostsBRL = FIXED_COSTS.unimessenger + (FIXED_COSTS.proxifier * USD_TO_BRL);
+  const oneTimeCostsBRL =
+    FIXED_COSTS.unimessenger +
+    FIXED_COSTS.proxifier * USD_TO_BRL +
+    chipPurchaseCosts;
 
   // Custo por instância
   const costPerInstance = totalInstances > 0 ? totalMonthlyCostsBRL / totalInstances : 0;
@@ -80,7 +92,7 @@ export function StatsCosts({ instances }: StatsCostsProps) {
               <div>
                 <p className="text-sm font-medium text-green-600 dark:text-green-300">Instâncias Ativas</p>
                 <p className="text-2xl font-bold text-green-900 dark:text-green-100">
-                  {(statusCounts["Aquecendo"] || 0) + (statusCounts["Disparando"] || 0)}
+                  {activeInstancesCount}
                 </p>
               </div>
             </div>
@@ -181,9 +193,14 @@ export function StatsCosts({ instances }: StatsCostsProps) {
             <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
               <div className="flex items-center space-x-2">
                 <Smartphone className="h-4 w-4 text-green-500" />
-                <span className="text-sm">Chips Físicos ({totalInstances} × R$ {INSTANCE_COSTS.chipCost.toFixed(2)})</span>
+                <span className="text-sm">
+                  Chips Físicos Ativos ({activeInstancesCount} × R$
+                  {INSTANCE_COSTS.chipQuarterly.toFixed(2)} /3m)
+                </span>
               </div>
-              <span className="font-semibold">R$ {monthlyChipCosts.toFixed(2)}</span>
+              <span className="font-semibold">
+                R$ {monthlyChipRecurringCosts.toFixed(2)}
+              </span>
             </div>
             
             <div className="border-t pt-3">
@@ -206,12 +223,25 @@ export function StatsCosts({ instances }: StatsCostsProps) {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
               <div className="flex items-center space-x-2">
+                <Smartphone className="h-4 w-4 text-green-500" />
+                <span className="text-sm">
+                  Chips Físicos ({totalInstances} × R$
+                  {INSTANCE_COSTS.chipPurchase.toFixed(2)})
+                </span>
+              </div>
+              <span className="font-semibold">
+                R$ {chipPurchaseCosts.toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+              <div className="flex items-center space-x-2">
                 <Smartphone className="h-4 w-4 text-blue-500" />
                 <span className="text-sm">Unimessenger</span>
               </div>
               <span className="font-semibold">R$ {FIXED_COSTS.unimessenger.toFixed(2)}</span>
             </div>
-            
+
             <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
               <div className="flex items-center space-x-2">
                 <Server className="h-4 w-4 text-purple-500" />
