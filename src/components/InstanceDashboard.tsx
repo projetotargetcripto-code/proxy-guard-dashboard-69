@@ -26,6 +26,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { downloadPpx } from "@/utils/ppx-generator";
 import { ApiInstancesTable } from "./ApiInstancesTable";
+import { StatsCosts } from "./StatsCosts";
 
 
 interface BulkImportInstance {
@@ -353,10 +354,11 @@ export function InstanceDashboard() {
 
         {/* Main Content */}
         <Tabs defaultValue="instances" className="w-full" onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="instances">Instâncias</TabsTrigger>
             <TabsTrigger value="services">Serviços</TabsTrigger>
             <TabsTrigger value="api-instances">Instâncias na API</TabsTrigger>
+            <TabsTrigger value="stats-costs">Estatísticas/Custos</TabsTrigger>
           </TabsList>
           
           <TabsContent value="instances">
@@ -534,6 +536,10 @@ export function InstanceDashboard() {
               <h2 className="text-xl font-semibold">Instâncias na API</h2>
             </div>
             <ApiInstancesTable />
+          </TabsContent>
+
+          <TabsContent value="stats-costs">
+            <StatsCosts instances={instances} />
           </TabsContent>
         </Tabs>
       </div>
