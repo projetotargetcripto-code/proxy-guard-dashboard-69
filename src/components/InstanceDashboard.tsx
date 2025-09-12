@@ -45,7 +45,17 @@ export function InstanceDashboard() {
   console.log("InstanceDashboard: Component started rendering");
   
   const { user, signOut } = useAuth();
-  const { instances, loading, createInstance, updateInstance, deleteInstance, updatePids, clearAllPids, bulkUpdateInstances } = useInstances();
+  const {
+    instances,
+    loading,
+    createInstance,
+    updateInstance,
+    deleteInstance,
+    updatePids,
+    clearAllPids,
+    bulkUpdateInstances,
+    refetch,
+  } = useInstances();
   const { createProxy } = useProxies();
   const { services, createService, updateService, deleteService } = useServices();
   const { toast } = useToast();
@@ -473,7 +483,7 @@ export function InstanceDashboard() {
                 onBulkEdit={handleBulkEditInstances}
                 onEdit={setEditingInstance}
                 onDelete={handleDeleteInstance}
-                onRefresh={() => window.location.reload()}
+                onRefresh={refetch}
               />
             )}
           </TabsContent>
