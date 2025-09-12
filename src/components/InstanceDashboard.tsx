@@ -25,6 +25,7 @@ import {
 } from "@/types/instance";
 import { useToast } from "@/hooks/use-toast";
 import { downloadPpx } from "@/utils/ppx-generator";
+import { ApiInstancesTable } from "./ApiInstancesTable";
 
 
 interface BulkImportInstance {
@@ -352,9 +353,10 @@ export function InstanceDashboard() {
 
         {/* Main Content */}
         <Tabs defaultValue="instances" className="w-full" onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="instances">Instâncias</TabsTrigger>
             <TabsTrigger value="services">Serviços</TabsTrigger>
+            <TabsTrigger value="api-instances">Instâncias na API</TabsTrigger>
           </TabsList>
           
           <TabsContent value="instances">
@@ -469,6 +471,7 @@ export function InstanceDashboard() {
                 onBulkEdit={handleBulkEditInstances}
                 onEdit={setEditingInstance}
                 onDelete={handleDeleteInstance}
+                onRefresh={() => window.location.reload()}
               />
             )}
           </TabsContent>
@@ -524,6 +527,13 @@ export function InstanceDashboard() {
                 onDelete={handleDeleteService}
               />
             )}
+          </TabsContent>
+
+          <TabsContent value="api-instances" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold">Instâncias na API</h2>
+            </div>
+            <ApiInstancesTable />
           </TabsContent>
         </Tabs>
       </div>

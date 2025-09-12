@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { AddToApiModal } from "./AddToApiModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -48,6 +49,7 @@ import {
   Trash2,
   Zap,
   Calendar,
+  Send,
 } from "lucide-react";
 import { Instance, Service, InstanceStatus } from "@/types/instance";
 import { useToast } from "@/hooks/use-toast";
@@ -62,6 +64,7 @@ interface InstanceTableProps {
   onBulkEdit: (instanceIds: string[], data: { service_id: string | null; status: InstanceStatus }) => void;
   onEdit: (instance: Instance) => void;
   onDelete: (instanceId: string) => void;
+  onRefresh: () => void;
 }
 
 export function InstanceTable({
@@ -71,7 +74,10 @@ export function InstanceTable({
   onBulkEdit,
   onEdit,
   onDelete,
+  onRefresh,
 }: InstanceTableProps) {
+  const [selectedApiInstance, setSelectedApiInstance] = useState<Instance | null>(null);
+  const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
   const [quickEditInstance, setQuickEditInstance] = useState<Instance | null>(null);
   const [selectedService, setSelectedService] = useState<string | undefined>(undefined);
@@ -83,6 +89,20 @@ export function InstanceTable({
   const [bulkService, setBulkService] = useState<string | undefined>(undefined);
   const [bulkStatus, setBulkStatus] = useState<InstanceStatus>("Repouso");
   const { toast } = useToast();
+
+  const handleAddToApi = (instance: Instance) => {
+    setSelectedApiInstance(instance);
+    setIsApiModalOpen(true);
+  };
+
+  const handleApiModalClose = () => {
+    setIsApiModalOpen(false);
+    setSelectedApiInstance(null);
+  };
+
+  const handleApiSuccess = () => {
+    onRefresh();
+  };
 
   const openQuickEdit = (instance: Instance) => {
     setQuickEditInstance(instance);
@@ -251,9 +271,16 @@ export function InstanceTable({
 
                 <div className="col-span-2">
                   <div className="space-y-1">
-                    <p className="font-medium text-foreground truncate" title={instance.instance_name}>
-                      {instance.instance_name}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-foreground truncate" title={instance.instance_name}>
+                        {instance.instance_name}
+                      </p>
+                      {instance.sent_to_api && (
+                        <Badge variant="secondary" className="text-xs">
+                          API
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       {instance.phone_number && (
                         <span className="font-bold">{`Tel: ${instance.phone_number}`}</span>
@@ -382,6 +409,10 @@ export function InstanceTable({
                       <DropdownMenuItem onClick={() => onEdit(instance)}>
                         <Edit className="mr-2 h-4 w-4" />
                         Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleAddToApi(instance)}>
+                        <Send className="mr-2 h-4 w-4" />
+                        Adicionar à API
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <AlertDialog>
@@ -552,6 +583,13 @@ export function InstanceTable({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <AddToApiModal
+      instance={selectedApiInstance}
+      isOpen={isApiModalOpen}
+      onClose={handleApiModalClose}
+      onSuccess={handleApiSuccess}
+    />
   </>
   );
 }

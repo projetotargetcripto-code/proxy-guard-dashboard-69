@@ -29,6 +29,8 @@ export interface Instance {
   proxy_id: string;
   service_id?: string | null;
   status: InstanceStatus;
+  sent_to_api?: boolean;
+  api_sent_at?: string | null;
   created_at: string;
   updated_at: string;
   proxies?: Proxy;
