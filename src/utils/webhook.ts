@@ -10,15 +10,14 @@ export interface WebhookData {
 export async function sendToApi(data: WebhookData): Promise<{ success: boolean; error?: string }> {
   try {
     console.log('Enviando para API:', data);
-    
+
+    const formBody = new URLSearchParams(data as Record<string, string>).toString();
     const response = await fetch('https://webhook.targetfuturos.com/webhook/CriaInstancia', {
       method: 'POST',
-      mode: 'cors',
       headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: JSON.stringify(data),
+      body: formBody,
     });
 
     console.log('Response status:', response.status);
