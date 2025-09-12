@@ -20,7 +20,7 @@ export function StatsCosts({ instances }: StatsCostsProps) {
   const activeInstancesCount =
     (statusCounts["Aquecendo"] || 0) + (statusCounts["Disparando"] || 0);
 
-  // Cost constants
+  // Cost constants (BRL and USD)
   const COSTS = {
     chipPurchaseBRL: 30,
     chipRenewBRL: 10,
