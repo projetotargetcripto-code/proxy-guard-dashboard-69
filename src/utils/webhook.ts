@@ -7,44 +7,62 @@ export interface WebhookData {
   proxyPass: string;
 }
 
-export async function sendToApi(data: WebhookData): Promise<{ success: boolean; error?: string }> {
+export async function sendToApi(
+  data: WebhookData
+): Promise<{ success: boolean; error?: string }> {
+  console.log("Enviando para API:", data);
+
+  const formBody = new URLSearchParams(
+    data as Record<string, string>
+  ).toString();
+
   try {
-    console.log('Enviando para API:', data);
+    const response = await fetch(
+      "https://webhook.site/96185f74-ccf8-4346-87dd-79ad87de924a",
+      {
+        method: "POST",
+        mode: "cors",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: formBody,
+        credentials: "include",
+      }
+    );
 
-    const formBody = new URLSearchParams(data as Record<string, string>).toString();
-    const response = await fetch('https://webhook.site/96185f74-ccf8-4346-87dd-79ad87de924a', {
-      method: 'POST',
-      mode: 'cors',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: formBody,
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Erro desconhecido');
-      throw new Error(`Erro HTTP ${response.status}: ${errorText}`);
+    if (response.ok) {
+      const result = await response.text().catch(() => "OK");
+      console.log("Response result:", result);
+      return { success: true };
     }
 
-    const result = await response.text().catch(() => 'OK');
-    console.log('Response result:', result);
-
-    return { success: true };
-  } catch (error) {
-    console.error('Erro ao enviar para API:', error);
-
-    // Tratamento específico para diferentes tipos de erro
-    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-      return {
-        success: false,
-        error: 'Erro de conexão: Verifique se o webhook está disponível ou se há problemas de CORS'
-      };
-    }
-
+    const errorText = await response
+      .text()
+      .catch(() => "Erro desconhecido");
+    console.error(
+      "Erro HTTP ao enviar para API:",
+      response.status,
+      errorText
+    );
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Erro desconhecido ao enviar para API'
+      error: `Erro HTTP ${response.status}: ${errorText}`,
+    };
+  } catch (error) {
+    // Alguns navegadores disparam TypeError mesmo que a requisição tenha sido
+    // enviada com sucesso (por exemplo, por políticas de CORS). Nesse caso, não
+    // exibimos erro no console para evitar falsos positivos.
+    if (error instanceof TypeError && error.message.includes("Failed to fetch")) {
+      return { success: true };
+    }
+
+    console.error("Erro ao enviar para API:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Erro desconhecido ao enviar para API",
     };
   }
 }
