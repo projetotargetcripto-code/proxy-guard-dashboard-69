@@ -20,9 +20,9 @@ export type Database = {
           id: string
           instance_name: string
           instance_number: number
+          phone_number: string | null
           pid1: string
           pid2: string
-          phone_number: string | null
           ppx_proxy_id: number | null
           ppx_rule_order: number | null
           proxy_id: string
@@ -40,9 +40,9 @@ export type Database = {
           id?: string
           instance_name: string
           instance_number: number
+          phone_number?: string | null
           pid1?: string
           pid2?: string
-          phone_number?: string | null
           ppx_proxy_id?: number | null
           ppx_rule_order?: number | null
           proxy_id: string
@@ -60,9 +60,9 @@ export type Database = {
           id?: string
           instance_name?: string
           instance_number?: number
+          phone_number?: string | null
           pid1?: string
           pid2?: string
-          phone_number?: string | null
           ppx_proxy_id?: number | null
           ppx_rule_order?: number | null
           proxy_id?: string
