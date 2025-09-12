@@ -18,16 +18,7 @@ export async function sendToApi(data: WebhookData): Promise<{ success: boolean; 
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: formBody,
-      // O endpoint não fornece cabeçalhos CORS, por isso usamos `no-cors`
-      // para permitir que a requisição seja enviada sem que o navegador a bloqueie.
-      mode: 'no-cors',
     });
-
-    // Em requisições `no-cors` a resposta é opaca, portanto não é possível
-    // acessar o status ou o corpo. Se chegamos até aqui consideramos como sucesso.
-    if (response.type === 'opaque') {
-      return { success: true };
-    }
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Erro desconhecido');
@@ -40,18 +31,18 @@ export async function sendToApi(data: WebhookData): Promise<{ success: boolean; 
     return { success: true };
   } catch (error) {
     console.error('Erro ao enviar para API:', error);
-    
+
     // Tratamento específico para diferentes tipos de erro
     if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-      return { 
-        success: false, 
-        error: 'Erro de conexão: Verifique se o webhook está disponível ou se há problemas de CORS' 
+      return {
+        success: false,
+        error: 'Erro de conexão: Verifique se o webhook está disponível ou se há problemas de CORS'
       };
     }
-    
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Erro desconhecido ao enviar para API' 
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro desconhecido ao enviar para API'
     };
   }
 }
