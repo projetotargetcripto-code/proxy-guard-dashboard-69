@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       instances: {
         Row: {
+          api_sent_at: string | null
           created_at: string
           id: string
           instance_name: string
@@ -31,11 +32,13 @@ export type Database = {
           proxy_name: string | null
           proxy_password: string | null
           proxy_port: number | null
+          sent_to_api: boolean | null
           service_id: string | null
           status: Database["public"]["Enums"]["instance_status"]
           updated_at: string
         }
         Insert: {
+          api_sent_at?: string | null
           created_at?: string
           id?: string
           instance_name: string
@@ -51,11 +54,13 @@ export type Database = {
           proxy_name?: string | null
           proxy_password?: string | null
           proxy_port?: number | null
+          sent_to_api?: boolean | null
           service_id?: string | null
           status?: Database["public"]["Enums"]["instance_status"]
           updated_at?: string
         }
         Update: {
+          api_sent_at?: string | null
           created_at?: string
           id?: string
           instance_name?: string
@@ -71,6 +76,7 @@ export type Database = {
           proxy_name?: string | null
           proxy_password?: string | null
           proxy_port?: number | null
+          sent_to_api?: boolean | null
           service_id?: string | null
           status?: Database["public"]["Enums"]["instance_status"]
           updated_at?: string

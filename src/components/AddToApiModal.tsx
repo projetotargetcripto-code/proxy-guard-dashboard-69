@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,7 +98,7 @@ export function AddToApiModal({ instance, isOpen, onClose, onSuccess }: AddToApi
   };
 
   // Reset form when instance changes
-  useState(() => {
+  useEffect(() => {
     if (instance) {
       setFormData({
         instanceName: instance.instance_name || "",
@@ -109,7 +109,7 @@ export function AddToApiModal({ instance, isOpen, onClose, onSuccess }: AddToApi
         proxyPass: instance.proxies?.password || "",
       });
     }
-  });
+  }, [instance]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
