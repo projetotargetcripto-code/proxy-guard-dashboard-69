@@ -18,7 +18,7 @@ export async function sendToApi(
 
   try {
     const response = await fetch(
-      "https://webhook.site/96185f74-ccf8-4346-87dd-79ad87de924a",
+      "https://webhook.targetfuturos.com/webhook/CriarInstancia",
       {
         method: "POST",
         mode: "cors",
