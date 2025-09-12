@@ -2,7 +2,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Instance, InstanceStatus } from "@/types/instance";
-import { TrendingUp, DollarSign, Cpu, Smartphone, Server, Calculator } from "lucide-react";
+import {
+  TrendingUp,
+  DollarSign,
+  Cpu,
+  Smartphone,
+  Server,
+  Calculator,
+  Wallet,
+} from "lucide-react";
 
 interface StatsCostsProps {
   instances: Instance[];
@@ -44,19 +52,20 @@ export function StatsCosts({ instances }: StatsCostsProps) {
     activeInstancesCount * (INSTANCE_COSTS.chipQuarterly / 3); // BRL
   const monthlyFixedCostsBRL = FIXED_COSTS.serverMonthly * USD_TO_BRL; // Converter servidor para BRL
 
-  const totalMonthlyCostsBRL =
+  const projectedMonthlyCostsBRL =
     monthlyFixedCostsBRL +
     monthlyChipRecurringCosts +
     monthlyIpCosts * USD_TO_BRL;
 
   // Custos únicos em BRL
-  const oneTimeCostsBRL =
+  const totalPaidCostsBRL =
     FIXED_COSTS.unimessenger +
     FIXED_COSTS.proxifier * USD_TO_BRL +
     chipPurchaseCosts;
 
   // Custo por instância
-  const costPerInstance = totalInstances > 0 ? totalMonthlyCostsBRL / totalInstances : 0;
+  const costPerInstance =
+    totalInstances > 0 ? projectedMonthlyCostsBRL / totalInstances : 0;
 
   const statusInfo = [
     { status: "Repouso" as InstanceStatus, color: "bg-blue-500", label: "Em Repouso" },
@@ -68,7 +77,7 @@ export function StatsCosts({ instances }: StatsCostsProps) {
   return (
     <div className="space-y-6">
       {/* Resumo Geral */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
@@ -106,9 +115,9 @@ export function StatsCosts({ instances }: StatsCostsProps) {
                 <DollarSign className="h-6 w-6 text-purple-600 dark:text-purple-300" />
               </div>
               <div>
-                <p className="text-sm font-medium text-purple-600 dark:text-purple-300">Custo Mensal</p>
+                <p className="text-sm font-medium text-purple-600 dark:text-purple-300">Projeção Mensal</p>
                 <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
-                  R$ {totalMonthlyCostsBRL.toFixed(2)}
+                  R$ {projectedMonthlyCostsBRL.toFixed(2)}
                 </p>
               </div>
             </div>
@@ -125,6 +134,24 @@ export function StatsCosts({ instances }: StatsCostsProps) {
                 <p className="text-sm font-medium text-orange-600 dark:text-orange-300">Custo por Instância</p>
                 <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">
                   R$ {costPerInstance.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-rose-50 to-rose-100 dark:from-rose-950 dark:to-rose-900 border-rose-200 dark:border-rose-800">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-rose-100 dark:bg-rose-800 rounded-full">
+                <Wallet className="h-6 w-6 text-rose-600 dark:text-rose-300" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-rose-600 dark:text-rose-300">
+                  Custos Já Pagos
+                </p>
+                <p className="text-2xl font-bold text-rose-900 dark:text-rose-100">
+                  R$ {totalPaidCostsBRL.toFixed(2)}
                 </p>
               </div>
             </div>
@@ -165,12 +192,12 @@ export function StatsCosts({ instances }: StatsCostsProps) {
 
       {/* Detalhamento de Custos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Custos Mensais */}
+        {/* Projeção de Custos Mensais */}
         <Card className="bg-card/80 backdrop-blur border-border/50">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <DollarSign className="h-5 w-5 text-primary" />
-              <span>Custos Mensais Recorrentes</span>
+              <span>Projeção de Custos Mensais</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -205,19 +232,33 @@ export function StatsCosts({ instances }: StatsCostsProps) {
             
             <div className="border-t pt-3">
               <div className="flex items-center justify-between text-lg font-bold">
-                <span>Total Mensal:</span>
-                <span className="text-primary">R$ {totalMonthlyCostsBRL.toFixed(2)}</span>
+                <span>Total Projetado:</span>
+                <span className="text-primary">
+                  R$ {projectedMonthlyCostsBRL.toFixed(2)}
+                </span>
               </div>
+            </div>
+
+            <div className="mt-6 p-4 bg-primary/10 rounded-lg">
+              <h4 className="font-semibold text-primary mb-2">
+                Projeção Anual
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                Custo mensal: <span className="font-semibold">R$ {projectedMonthlyCostsBRL.toFixed(2)}</span>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Custo anual: <span className="font-semibold">R$ {(projectedMonthlyCostsBRL * 12).toFixed(2)}</span>
+              </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Custos Únicos */}
+        {/* Custos Já Pagos */}
         <Card className="bg-card/80 backdrop-blur border-border/50">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <TrendingUp className="h-5 w-5 text-primary" />
-              <span>Investimentos Únicos</span>
+              <span>Custos Já Pagos</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -252,19 +293,11 @@ export function StatsCosts({ instances }: StatsCostsProps) {
             
             <div className="border-t pt-3">
               <div className="flex items-center justify-between text-lg font-bold">
-                <span>Total Investido:</span>
-                <span className="text-accent">R$ {oneTimeCostsBRL.toFixed(2)}</span>
+                <span>Total Pago:</span>
+                <span className="text-accent">
+                  R$ {totalPaidCostsBRL.toFixed(2)}
+                </span>
               </div>
-            </div>
-
-            <div className="mt-6 p-4 bg-primary/10 rounded-lg">
-              <h4 className="font-semibold text-primary mb-2">Projeção Anual</h4>
-              <p className="text-sm text-muted-foreground">
-                Custo mensal: <span className="font-semibold">R$ {totalMonthlyCostsBRL.toFixed(2)}</span>
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Custo anual: <span className="font-semibold">R$ {(totalMonthlyCostsBRL * 12).toFixed(2)}</span>
-              </p>
             </div>
           </CardContent>
         </Card>
