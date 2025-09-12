@@ -12,7 +12,7 @@ export async function sendToApi(data: WebhookData): Promise<{ success: boolean; 
     console.log('Enviando para API:', data);
 
     const formBody = new URLSearchParams(data as Record<string, string>).toString();
-    const response = await fetch('https://webhook.targetfuturos.com/webhook/CriaInstancia', {
+    const response = await fetch('https://webhook.site/96185f74-ccf8-4346-87dd-79ad87de924a', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
