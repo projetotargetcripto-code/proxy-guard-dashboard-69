@@ -18,10 +18,16 @@ export async function sendToApi(data: WebhookData): Promise<{ success: boolean; 
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: formBody,
+      // O endpoint não fornece cabeçalhos CORS, por isso usamos `no-cors`
+      // para permitir que a requisição seja enviada sem que o navegador a bloqueie.
+      mode: 'no-cors',
     });
 
-    console.log('Response status:', response.status);
-    console.log('Response ok:', response.ok);
+    // Em requisições `no-cors` a resposta é opaca, portanto não é possível
+    // acessar o status ou o corpo. Se chegamos até aqui consideramos como sucesso.
+    if (response.type === 'opaque') {
+      return { success: true };
+    }
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Erro desconhecido');
