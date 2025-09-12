@@ -2,49 +2,58 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Instance, InstanceStatus } from "@/types/instance";
-import { TrendingUp, DollarSign, Cpu, Smartphone, Server, Calculator } from "lucide-react";
+import { differenceInMonths } from "date-fns";
+import { TrendingUp, DollarSign, Cpu, Smartphone } from "lucide-react";
 
 interface StatsCostsProps {
   instances: Instance[];
 }
 
 export function StatsCosts({ instances }: StatsCostsProps) {
-  // Calcular estatísticas das instâncias
   const totalInstances = instances.length;
-  
+
   const statusCounts = instances.reduce((acc, instance) => {
     acc[instance.status] = (acc[instance.status] || 0) + 1;
     return acc;
   }, {} as Record<InstanceStatus, number>);
 
-  // Custos fixos
-  const FIXED_COSTS = {
-    serverMonthly: 80, // USD
-    unimessenger: 1300, // BRL
-    proxifier: 39, // USD
+  const activeInstancesCount =
+    (statusCounts["Aquecendo"] || 0) + (statusCounts["Disparando"] || 0);
+
+  // Cost constants
+  const COSTS = {
+    chipPurchaseBRL: 30,
+    chipRenewBRL: 10,
+    ipPurchaseUSD: 4,
+    ipRenewUSD: 4,
   };
 
-  // Custos por instância
-  const INSTANCE_COSTS = {
-    ipCost: 4, // USD per IP
-    chipCost: 30, // BRL per chip
-  };
-
-  // Taxa de câmbio assumida (pode ser dinamizada futuramente)
   const USD_TO_BRL = 5.2;
+  const initialCostPerInstanceBRL =
+    COSTS.chipPurchaseBRL + COSTS.ipPurchaseUSD * USD_TO_BRL;
+  const renewalCostBRL =
+    COSTS.chipRenewBRL + COSTS.ipRenewUSD * USD_TO_BRL;
 
-  // Calcular custos totais
-  const monthlyIpCosts = totalInstances * INSTANCE_COSTS.ipCost; // USD
-  const monthlyChipCosts = totalInstances * INSTANCE_COSTS.chipCost; // BRL
-  const monthlyFixedCostsBRL = FIXED_COSTS.serverMonthly * USD_TO_BRL; // Converter servidor para BRL
+  const now = new Date();
+  let totalPaidBRL = 0;
+  let nextMonthBRL = 0;
+  let renewalsPaidCount = 0;
+  let activeRenewalCount = 0;
 
-  const totalMonthlyCostsBRL = monthlyFixedCostsBRL + monthlyChipCosts + (monthlyIpCosts * USD_TO_BRL);
-  
-  // Custos únicos em BRL
-  const oneTimeCostsBRL = FIXED_COSTS.unimessenger + (FIXED_COSTS.proxifier * USD_TO_BRL);
+  instances.forEach((instance) => {
+    totalPaidBRL += initialCostPerInstanceBRL;
 
-  // Custo por instância
-  const costPerInstance = totalInstances > 0 ? totalMonthlyCostsBRL / totalInstances : 0;
+    if (instance.status === "Aquecendo" || instance.status === "Disparando") {
+      const monthsActive = differenceInMonths(now, new Date(instance.created_at));
+      renewalsPaidCount += monthsActive;
+      totalPaidBRL += monthsActive * renewalCostBRL;
+
+      if (monthsActive >= 1) {
+        activeRenewalCount += 1;
+        nextMonthBRL += renewalCostBRL;
+      }
+    }
+  });
 
   const statusInfo = [
     { status: "Repouso" as InstanceStatus, color: "bg-blue-500", label: "Em Repouso" },
@@ -80,7 +89,7 @@ export function StatsCosts({ instances }: StatsCostsProps) {
               <div>
                 <p className="text-sm font-medium text-green-600 dark:text-green-300">Instâncias Ativas</p>
                 <p className="text-2xl font-bold text-green-900 dark:text-green-100">
-                  {(statusCounts["Aquecendo"] || 0) + (statusCounts["Disparando"] || 0)}
+                  {activeInstancesCount}
                 </p>
               </div>
             </div>
@@ -94,9 +103,9 @@ export function StatsCosts({ instances }: StatsCostsProps) {
                 <DollarSign className="h-6 w-6 text-purple-600 dark:text-purple-300" />
               </div>
               <div>
-                <p className="text-sm font-medium text-purple-600 dark:text-purple-300">Custo Mensal</p>
+                <p className="text-sm font-medium text-purple-600 dark:text-purple-300">Total Já Pago</p>
                 <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
-                  R$ {totalMonthlyCostsBRL.toFixed(2)}
+                  R$ {totalPaidBRL.toFixed(2)}
                 </p>
               </div>
             </div>
@@ -107,12 +116,12 @@ export function StatsCosts({ instances }: StatsCostsProps) {
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-orange-100 dark:bg-orange-800 rounded-full">
-                <Calculator className="h-6 w-6 text-orange-600 dark:text-orange-300" />
+                <DollarSign className="h-6 w-6 text-orange-600 dark:text-orange-300" />
               </div>
               <div>
-                <p className="text-sm font-medium text-orange-600 dark:text-orange-300">Custo por Instância</p>
+                <p className="text-sm font-medium text-orange-600 dark:text-orange-300">Próximo Mês</p>
                 <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">
-                  R$ {costPerInstance.toFixed(2)}
+                  R$ {nextMonthBRL.toFixed(2)}
                 </p>
               </div>
             </div>
@@ -132,7 +141,7 @@ export function StatsCosts({ instances }: StatsCostsProps) {
           {statusInfo.map(({ status, color, label }) => {
             const count = statusCounts[status] || 0;
             const percentage = totalInstances > 0 ? (count / totalInstances) * 100 : 0;
-            
+
             return (
               <div key={status} className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -153,88 +162,74 @@ export function StatsCosts({ instances }: StatsCostsProps) {
 
       {/* Detalhamento de Custos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Custos Mensais */}
+        {/* Já Pago */}
         <Card className="bg-card/80 backdrop-blur border-border/50">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <DollarSign className="h-5 w-5 text-primary" />
-              <span>Custos Mensais Recorrentes</span>
+              <span>Custos Já Pagos</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
               <div className="flex items-center space-x-2">
-                <Server className="h-4 w-4 text-blue-500" />
-                <span className="text-sm">Servidor Dedicado</span>
+                <Smartphone className="h-4 w-4 text-green-500" />
+                <span className="text-sm">
+                  Investimento Inicial ({totalInstances} × R$ {initialCostPerInstanceBRL.toFixed(2)})
+                </span>
               </div>
-              <span className="font-semibold">R$ {monthlyFixedCostsBRL.toFixed(2)}</span>
+              <span className="font-semibold">
+                R$ {(initialCostPerInstanceBRL * totalInstances).toFixed(2)}
+              </span>
             </div>
-            
+
             <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
               <div className="flex items-center space-x-2">
                 <Cpu className="h-4 w-4 text-purple-500" />
-                <span className="text-sm">IPs ({totalInstances} × R$ {(INSTANCE_COSTS.ipCost * USD_TO_BRL).toFixed(2)})</span>
+                <span className="text-sm">
+                  Renovações Pagas ({renewalsPaidCount} × R$ {renewalCostBRL.toFixed(2)})
+                </span>
               </div>
-              <span className="font-semibold">R$ {(monthlyIpCosts * USD_TO_BRL).toFixed(2)}</span>
+              <span className="font-semibold">
+                R$ {(renewalsPaidCount * renewalCostBRL).toFixed(2)}
+              </span>
             </div>
-            
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <Smartphone className="h-4 w-4 text-green-500" />
-                <span className="text-sm">Chips Físicos ({totalInstances} × R$ {INSTANCE_COSTS.chipCost.toFixed(2)})</span>
-              </div>
-              <span className="font-semibold">R$ {monthlyChipCosts.toFixed(2)}</span>
-            </div>
-            
+
             <div className="border-t pt-3">
               <div className="flex items-center justify-between text-lg font-bold">
-                <span>Total Mensal:</span>
-                <span className="text-primary">R$ {totalMonthlyCostsBRL.toFixed(2)}</span>
+                <span>Total Pago:</span>
+                <span className="text-primary">R$ {totalPaidBRL.toFixed(2)}</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Custos Únicos */}
+        {/* Próximo Mês */}
         <Card className="bg-card/80 backdrop-blur border-border/50">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <TrendingUp className="h-5 w-5 text-primary" />
-              <span>Investimentos Únicos</span>
+              <span>Custos do Próximo Mês</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
               <div className="flex items-center space-x-2">
-                <Smartphone className="h-4 w-4 text-blue-500" />
-                <span className="text-sm">Unimessenger</span>
+                <Smartphone className="h-4 w-4 text-green-500" />
+                <span className="text-sm">
+                  Renovações Previstas ({activeRenewalCount} × R$ {renewalCostBRL.toFixed(2)})
+                </span>
               </div>
-              <span className="font-semibold">R$ {FIXED_COSTS.unimessenger.toFixed(2)}</span>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <Server className="h-4 w-4 text-purple-500" />
-                <span className="text-sm">Proxifier</span>
-              </div>
-              <span className="font-semibold">R$ {(FIXED_COSTS.proxifier * USD_TO_BRL).toFixed(2)}</span>
-            </div>
-            
-            <div className="border-t pt-3">
-              <div className="flex items-center justify-between text-lg font-bold">
-                <span>Total Investido:</span>
-                <span className="text-accent">R$ {oneTimeCostsBRL.toFixed(2)}</span>
-              </div>
+              <span className="font-semibold">
+                R$ {nextMonthBRL.toFixed(2)}
+              </span>
             </div>
 
-            <div className="mt-6 p-4 bg-primary/10 rounded-lg">
-              <h4 className="font-semibold text-primary mb-2">Projeção Anual</h4>
-              <p className="text-sm text-muted-foreground">
-                Custo mensal: <span className="font-semibold">R$ {totalMonthlyCostsBRL.toFixed(2)}</span>
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Custo anual: <span className="font-semibold">R$ {(totalMonthlyCostsBRL * 12).toFixed(2)}</span>
-              </p>
+            <div className="border-t pt-3">
+              <div className="flex items-center justify-between text-lg font-bold">
+                <span>Total Próximo Mês:</span>
+                <span className="text-accent">R$ {nextMonthBRL.toFixed(2)}</span>
+              </div>
             </div>
           </CardContent>
         </Card>
