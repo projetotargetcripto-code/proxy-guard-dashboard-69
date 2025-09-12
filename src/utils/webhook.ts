@@ -9,24 +9,44 @@ export interface WebhookData {
 
 export async function sendToApi(data: WebhookData): Promise<{ success: boolean; error?: string }> {
   try {
+    console.log('Enviando para API:', data);
+    
     const response = await fetch('https://webhook.targetfuturos.com/webhook/CriaInstancia', {
       method: 'POST',
+      mode: 'cors',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
       body: JSON.stringify(data),
     });
 
+    console.log('Response status:', response.status);
+    console.log('Response ok:', response.ok);
+
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text().catch(() => 'Erro desconhecido');
+      throw new Error(`Erro HTTP ${response.status}: ${errorText}`);
     }
+
+    const result = await response.text().catch(() => 'OK');
+    console.log('Response result:', result);
 
     return { success: true };
   } catch (error) {
-    console.error('Error sending to API:', error);
+    console.error('Erro ao enviar para API:', error);
+    
+    // Tratamento específico para diferentes tipos de erro
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      return { 
+        success: false, 
+        error: 'Erro de conexão: Verifique se o webhook está disponível ou se há problemas de CORS' 
+      };
+    }
+    
     return { 
       success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error occurred' 
+      error: error instanceof Error ? error.message : 'Erro desconhecido ao enviar para API' 
     };
   }
 }
