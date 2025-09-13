@@ -39,13 +39,13 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
 
   const statusStyles: Record<InstanceStatus, string> = {
     Repouso:
-      "border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900",
+      "border-gray-700 bg-gradient-to-br from-gray-800 to-gray-900",
     Aquecendo:
-      "border-yellow-200 bg-gradient-to-br from-yellow-50 via-amber-50 to-yellow-100 dark:from-yellow-700 dark:via-amber-700 dark:to-yellow-800",
+      "border-yellow-700 bg-gradient-to-br from-yellow-700 via-amber-700 to-yellow-800",
     Disparando:
-      "border-green-200 bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-700 dark:to-emerald-800",
+      "border-green-700 bg-gradient-to-br from-green-700 to-emerald-800",
     Banida:
-      "border-red-200 bg-gradient-to-br from-red-50 to-rose-100 dark:from-red-700 dark:to-rose-800",
+      "border-red-700 bg-gradient-to-br from-red-700 to-rose-800",
   };
 
   const triggerWebhook = async (action: string, instanceId: string) => {
