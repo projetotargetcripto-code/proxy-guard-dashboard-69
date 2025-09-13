@@ -35,7 +35,7 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
 
   const apiInstances = instances
     .filter((inst) => inst.sent_to_api)
-    .sort((a, b) => a.instance_name.localeCompare(b.instance_name));
+    .sort((a, b) => a.instance_number - b.instance_number);
 
   const statusStyles: Record<InstanceStatus, string> = {
     Repouso:
