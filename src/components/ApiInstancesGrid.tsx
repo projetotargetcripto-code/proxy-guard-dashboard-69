@@ -26,7 +26,7 @@ interface ApiInstancesGridProps {
   onUpdateStatus: (id: string, status: InstanceStatus) => Promise<void> | void;
 }
 
-const WEBHOOK_BASE = "https://webhook.targetfuturos.com";
+const WEBHOOK_BASE = "https://webhook.targetfuturos.com/webhook";
 
 export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdateStatus }: ApiInstancesGridProps) {
   const [statusModalOpen, setStatusModalOpen] = useState(false);
@@ -58,17 +58,16 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
 
       const response = await fetch(`${WEBHOOK_BASE}/${action}`, {
         method: "POST",
-        // Usamos "no-cors" para garantir que a requisição seja enviada mesmo
-        // quando o servidor não expõe cabeçalhos CORS. Nesse caso o navegador
-        // retorna uma resposta "opaque" cuja informação não pode ser lida.
-        mode: "no-cors",
+        // Habilitamos CORS e enviamos cookies para espelhar a configuração
+        // usada ao criar instâncias na API. Isso evita erros de bloqueio antes
+        // da requisição ser realmente enviada.
+        mode: "cors",
+        credentials: "include",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body,
       });
 
-      // Quando a resposta for acessível (não "opaque"), validamos o status
-      // HTTP e somente retornamos sucesso se response.ok for verdadeiro.
-      if (response.type !== "opaque" && !response.ok) {
+      if (!response.ok) {
         const errorText = await response.text().catch(() => "");
         console.error(
           "Erro HTTP ao acionar webhook:",
@@ -78,9 +77,8 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
         return false;
       }
 
-      // Só é possível ler o corpo da resposta quando não está em modo "opaque".
-      if (response.type !== "opaque" && action === "connect") {
-        const text = await response.text().catch(() => "");
+      const text = await response.text().catch(() => "");
+      if (action === "connect") {
         try {
           const data = JSON.parse(text);
           if (data?.qrcode) {
@@ -88,8 +86,7 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
             setQrModalOpen(true);
           }
         } catch {
-          // Ignore parse errors, which can happen if the browser blocks access
-          // to the response due to missing CORS headers.
+          // Ignore parse errors, which can happen if the response isn't JSON.
         }
       }
 
