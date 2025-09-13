@@ -4,6 +4,7 @@ import { AddToApiModal } from "./AddToApiModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -255,7 +256,10 @@ export function InstanceTable({
             {instances.map((instance) => (
               <div
                 key={instance.id}
-                className="grid grid-cols-13 gap-4 p-4 border-b border-border/20 hover:bg-muted/10 transition-colors"
+                className={cn(
+                  "grid grid-cols-13 gap-4 p-4 border-b border-border/20 hover:bg-muted/10 transition-colors",
+                  instance.status === "Banida" && "bg-destructive/20 text-destructive"
+                )}
               >
                 <div className="col-span-1 flex items-center">
                   <Checkbox
@@ -304,10 +308,11 @@ export function InstanceTable({
                 <div className="col-span-1">
                   <Badge
                     variant={
-                      instance.status === 'Disparando' ? 'destructive' :
-                      instance.status === 'Aquecendo' ? 'default' :
-                      instance.status === 'Banida' ? 'outline' :
-                      'secondary'
+                      instance.status === "Disparando" || instance.status === "Banida"
+                        ? "destructive"
+                        : instance.status === "Aquecendo"
+                          ? "default"
+                          : "secondary"
                     }
                     className="text-xs"
                   >
