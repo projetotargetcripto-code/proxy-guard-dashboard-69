@@ -95,9 +95,6 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
               <Button onClick={() => triggerWebhook("connect", apiInstance.id)}>
                 Conectar
               </Button>
-              <Button onClick={() => triggerWebhook("chatwoot", apiInstance.id)}>
-                Chatwoot
-              </Button>
               <Button onClick={() => triggerWebhook("disconnect", apiInstance.id)}>
                 Desconectar
               </Button>
