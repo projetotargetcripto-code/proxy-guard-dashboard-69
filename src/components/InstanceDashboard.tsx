@@ -25,7 +25,7 @@ import {
 } from "@/types/instance";
 import { useToast } from "@/hooks/use-toast";
 import { downloadPpx } from "@/utils/ppx-generator";
-import { ApiInstancesTable } from "./ApiInstancesTable";
+import { ApiInstancesGrid } from "./ApiInstancesGrid";
 import { StatsCosts } from "./StatsCosts";
 
 
@@ -117,6 +117,18 @@ export function InstanceDashboard() {
       await deleteInstance(instanceId);
     } catch (error) {
       console.error("Error deleting instance:", error);
+    }
+  };
+
+  const handleRemoveFromApi = async (instanceId: string) => {
+    try {
+      await updateInstance(instanceId, { sent_to_api: false, api_sent_at: null });
+      toast({
+        title: "Instância removida da API",
+        description: "A instância foi removida da aba Instâncias na API.",
+      });
+    } catch (error) {
+      console.error("Error removing instance from API:", error);
     }
   };
 
@@ -545,7 +557,11 @@ export function InstanceDashboard() {
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold">Instâncias na API</h2>
             </div>
-            <ApiInstancesTable instances={instances} loading={loading} />
+            <ApiInstancesGrid
+              instances={instances}
+              loading={loading}
+              onRemoveFromApi={handleRemoveFromApi}
+            />
           </TabsContent>
 
           <TabsContent value="stats-costs">

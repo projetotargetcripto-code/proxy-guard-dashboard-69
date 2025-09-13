@@ -99,7 +99,7 @@ export function useInstances() {
     }
   };
 
-  const updateInstance = async (id: string, instanceData: Partial<CreateInstanceData>) => {
+  const updateInstance = async (id: string, instanceData: Partial<Instance>) => {
     try {
       const { data, error } = await supabase
         .from('instances')
