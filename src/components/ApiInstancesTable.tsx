@@ -1,6 +1,4 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { Instance } from "@/types/instance";
 import {
   Table,
   TableBody,
@@ -12,41 +10,19 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 
-interface ApiInstance {
-  id: string;
-  instance_name: string;
-  phone_number: string;
-  proxy_host: string;
-  proxy_port: number;
-  proxy_user: string;
-  sent_at: string;
-  status: string;
+interface ApiInstancesTableProps {
+  instances: Instance[];
+  loading?: boolean;
 }
 
-export function ApiInstancesTable() {
-  const [apiInstances, setApiInstances] = useState<ApiInstance[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-
-  const fetchApiInstances = async () => {
-    try {
-      // For now, just show empty since sent_to_api column doesn't exist yet
-      setApiInstances([]);
-    } catch (error) {
-      console.error('Error fetching API instances:', error);
-      toast({
-        title: "Erro ao carregar instâncias da API",
-        description: "Não foi possível carregar a lista de instâncias enviadas para a API.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchApiInstances();
-  }, []);
+export function ApiInstancesTable({ instances, loading }: ApiInstancesTableProps) {
+  const apiInstances = instances
+    .filter((inst) => inst.sent_to_api)
+    .sort((a, b) => {
+      const dateA = a.api_sent_at ? new Date(a.api_sent_at).getTime() : 0;
+      const dateB = b.api_sent_at ? new Date(b.api_sent_at).getTime() : 0;
+      return dateB - dateA;
+    });
 
   if (loading) {
     return (
@@ -84,17 +60,17 @@ export function ApiInstancesTable() {
               <TableCell className="font-medium">
                 {apiInstance.instance_name}
               </TableCell>
-              <TableCell>{apiInstance.phone_number}</TableCell>
-              <TableCell>{apiInstance.proxy_host}</TableCell>
-              <TableCell>{apiInstance.proxy_port}</TableCell>
-              <TableCell>{apiInstance.proxy_user}</TableCell>
+              <TableCell>{apiInstance.phone_number || ""}</TableCell>
+              <TableCell>{apiInstance.proxies?.ip || ""}</TableCell>
+              <TableCell>{apiInstance.proxies?.port || ""}</TableCell>
+              <TableCell>{apiInstance.proxies?.username || ""}</TableCell>
               <TableCell>
-                {new Date(apiInstance.sent_at).toLocaleString('pt-BR')}
+                {apiInstance.api_sent_at
+                  ? new Date(apiInstance.api_sent_at).toLocaleString("pt-BR")
+                  : ""}
               </TableCell>
               <TableCell>
-                <Badge variant="secondary">
-                  {apiInstance.status}
-                </Badge>
+                <Badge variant="secondary">{apiInstance.status}</Badge>
               </TableCell>
             </TableRow>
           ))}
