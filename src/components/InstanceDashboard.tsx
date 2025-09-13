@@ -545,7 +545,7 @@ export function InstanceDashboard() {
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold">Instâncias na API</h2>
             </div>
-            <ApiInstancesTable />
+            <ApiInstancesTable instances={instances} loading={loading} />
           </TabsContent>
 
           <TabsContent value="stats-costs">
