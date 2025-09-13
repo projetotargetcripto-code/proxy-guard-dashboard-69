@@ -50,11 +50,12 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
       "border-red-700 bg-gradient-to-br from-red-700 to-rose-800",
   };
 
-  const triggerWebhook = async (action: string, instance: Instance) => {
+  const triggerWebhook = async (action: string, instance: Instance): Promise<boolean> => {
     try {
       const body = new URLSearchParams({
         instanceName: instance.instance_name,
       }).toString();
+
       const response = await fetch(`${WEBHOOK_BASE}/${action}`, {
         method: "POST",
         // Explicitly enable CORS and include credentials to mirror the
@@ -66,6 +67,12 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body,
       });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "");
+        console.error("Erro HTTP ao acionar webhook:", response.status, errorText);
+        return false;
+      }
 
       if (action === "connect") {
         const text = await response.text().catch(() => "");
@@ -80,14 +87,17 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
           // to the response due to missing CORS headers.
         }
       }
+
+      return true;
     } catch (error) {
       // Alguns navegadores disparam TypeError com "Failed to fetch" quando o
       // servidor não envia cabeçalhos CORS. Consideramos que a requisição foi
       // enviada com sucesso nesses casos para evitar ruído no console.
       if (error instanceof TypeError && error.message.includes("Failed to fetch")) {
-        return;
+        return true;
       }
       console.error("Error triggering webhook:", error);
+      return false;
     }
   };
 
