@@ -132,6 +132,14 @@ export function InstanceDashboard() {
     }
   };
 
+  const handleStatusUpdate = async (instanceId: string, status: InstanceStatus) => {
+    try {
+      await updateInstance(instanceId, { status });
+    } catch (error) {
+      console.error("Error updating status:", error);
+    }
+  };
+
   const handleQuickEditInstance = async (
     instanceId: string,
     data: {
@@ -561,6 +569,7 @@ export function InstanceDashboard() {
               instances={instances}
               loading={loading}
               onRemoveFromApi={handleRemoveFromApi}
+              onUpdateStatus={handleStatusUpdate}
             />
           </TabsContent>
 

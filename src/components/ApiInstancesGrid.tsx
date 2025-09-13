@@ -1,25 +1,48 @@
-import { Instance } from "@/types/instance";
+import { useState } from "react";
+import { Instance, InstanceStatus } from "@/types/instance";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ApiInstancesGridProps {
   instances: Instance[];
   loading?: boolean;
   onRemoveFromApi: (id: string) => Promise<void> | void;
+  onUpdateStatus: (id: string, status: InstanceStatus) => Promise<void> | void;
 }
 
 const WEBHOOK_BASE = "https://webhook.targetfuturos.com";
 
-export function ApiInstancesGrid({ instances, loading, onRemoveFromApi }: ApiInstancesGridProps) {
+export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdateStatus }: ApiInstancesGridProps) {
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [selectedInstance, setSelectedInstance] = useState<Instance | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<InstanceStatus>("Repouso");
+
   const apiInstances = instances
     .filter((inst) => inst.sent_to_api)
-    .sort((a, b) => {
-      const dateA = a.api_sent_at ? new Date(a.api_sent_at).getTime() : 0;
-      const dateB = b.api_sent_at ? new Date(b.api_sent_at).getTime() : 0;
-      return dateB - dateA;
-    });
+    .sort((a, b) => a.instance_name.localeCompare(b.instance_name));
+
+  const statusStyles: Record<InstanceStatus, string> = {
+    Repouso: "border-gray-200 bg-gray-100",
+    Aquecendo: "border-yellow-200 bg-yellow-50",
+    Disparando: "border-green-200 bg-green-50",
+    Banida: "border-red-200 bg-red-50",
+  };
 
   const triggerWebhook = async (action: string, instanceId: string) => {
     try {
@@ -52,7 +75,10 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi }: ApiIns
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {apiInstances.map((apiInstance) => (
-        <Card key={apiInstance.id}>
+        <Card
+          key={apiInstance.id}
+          className={`${statusStyles[apiInstance.status]} transition-transform duration-300 hover:scale-105 animate-fade-in`}
+        >
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               {apiInstance.instance_name}
@@ -71,6 +97,13 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi }: ApiIns
               <Button onClick={() => triggerWebhook("disconnect", apiInstance.id)}>
                 Desconectar
               </Button>
+              <Button onClick={() => {
+                setSelectedInstance(apiInstance);
+                setSelectedStatus(apiInstance.status);
+                setStatusModalOpen(true);
+              }}>
+                Status
+              </Button>
               <Button
                 variant="destructive"
                 onClick={() => onRemoveFromApi(apiInstance.id)}
@@ -81,6 +114,42 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi }: ApiIns
           </CardContent>
         </Card>
       ))}
+      <Dialog open={statusModalOpen} onOpenChange={setStatusModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Alterar Status</DialogTitle>
+            <DialogDescription>
+              Selecione o novo status da conta
+            </DialogDescription>
+          </DialogHeader>
+          <Select value={selectedStatus} onValueChange={(v) => setSelectedStatus(v as InstanceStatus)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Repouso">Repouso</SelectItem>
+              <SelectItem value="Aquecendo">Aquecendo</SelectItem>
+              <SelectItem value="Disparando">Disparando</SelectItem>
+              <SelectItem value="Banida">Banida</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button variant="outline" onClick={() => setStatusModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                if (selectedInstance) {
+                  onUpdateStatus(selectedInstance.id, selectedStatus);
+                }
+                setStatusModalOpen(false);
+              }}
+            >
+              Salvar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
