@@ -50,24 +50,36 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
       "border-red-700 bg-gradient-to-br from-red-700 to-rose-800",
   };
 
-  const triggerWebhook = async (action: string, instance: Instance) => {
+  const triggerWebhook = async (action: string, instance: Instance): Promise<boolean> => {
     try {
       const body = new URLSearchParams({
         instanceName: instance.instance_name,
       }).toString();
+
       const response = await fetch(`${WEBHOOK_BASE}/${action}`, {
         method: "POST",
-        // Explicitly enable CORS and include credentials to mirror the
-        // configuration used when sending instâncias to the API. Without these
-        // options some browsers block the request before it is sent, emitting a
-        // misleading CORS "Failed to fetch" error.
-        mode: "cors",
-        credentials: "include",
+        // Usamos "no-cors" para garantir que a requisição seja enviada mesmo
+        // quando o servidor não expõe cabeçalhos CORS. Nesse caso o navegador
+        // retorna uma resposta "opaque" cuja informação não pode ser lida.
+        mode: "no-cors",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body,
       });
 
-      if (action === "connect") {
+      // Quando a resposta for acessível (não "opaque"), validamos o status
+      // HTTP e somente retornamos sucesso se response.ok for verdadeiro.
+      if (response.type !== "opaque" && !response.ok) {
+        const errorText = await response.text().catch(() => "");
+        console.error(
+          "Erro HTTP ao acionar webhook:",
+          response.status,
+          errorText,
+        );
+        return false;
+      }
+
+      // Só é possível ler o corpo da resposta quando não está em modo "opaque".
+      if (response.type !== "opaque" && action === "connect") {
         const text = await response.text().catch(() => "");
         try {
           const data = JSON.parse(text);
@@ -80,14 +92,17 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
           // to the response due to missing CORS headers.
         }
       }
+
+      return true;
     } catch (error) {
       // Alguns navegadores disparam TypeError com "Failed to fetch" quando o
       // servidor não envia cabeçalhos CORS. Consideramos que a requisição foi
       // enviada com sucesso nesses casos para evitar ruído no console.
       if (error instanceof TypeError && error.message.includes("Failed to fetch")) {
-        return;
+        return true;
       }
       console.error("Error triggering webhook:", error);
+      return false;
     }
   };
 
