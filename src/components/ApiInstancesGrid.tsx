@@ -32,6 +32,8 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState<Instance | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<InstanceStatus>("Repouso");
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [qrCode, setQrCode] = useState<string | null>(null);
 
   const apiInstances = instances
     .filter((inst) => inst.sent_to_api)
@@ -48,13 +50,21 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
       "border-red-700 bg-gradient-to-br from-red-700 to-rose-800",
   };
 
-  const triggerWebhook = async (action: string, instanceId: string) => {
+  const triggerWebhook = async (action: string, instance: Instance) => {
     try {
-      await fetch(`${WEBHOOK_BASE}/${action}`, {
+      const response = await fetch(`${WEBHOOK_BASE}/${action}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ instanceId }),
+        body: JSON.stringify({ instanceName: instance.instance_name }),
       });
+
+      if (action === "connect") {
+        const data = await response.json().catch(() => null);
+        if (data?.qrcode) {
+          setQrCode(data.qrcode as string);
+          setQrModalOpen(true);
+        }
+      }
     } catch (error) {
       console.error("Error triggering webhook:", error);
     }
@@ -92,10 +102,10 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
           <CardContent className="space-y-2">
             <div>Telefone: {apiInstance.phone_number || ""}</div>
             <div className="flex flex-wrap gap-2">
-              <Button onClick={() => triggerWebhook("connect", apiInstance.id)}>
+              <Button onClick={() => triggerWebhook("connect", apiInstance)}>
                 Conectar
               </Button>
-              <Button onClick={() => triggerWebhook("disconnect", apiInstance.id)}>
+              <Button onClick={() => triggerWebhook("disconnect", apiInstance)}>
                 Desconectar
               </Button>
               <Button onClick={() => {
@@ -149,6 +159,23 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
               Salvar
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={qrModalOpen} onOpenChange={setQrModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>QR Code</DialogTitle>
+            <DialogDescription>
+              Escaneie o código para conectar a instância.
+            </DialogDescription>
+          </DialogHeader>
+          {qrCode && (
+            <img
+              src={`data:image/png;base64,${qrCode}`}
+              alt="QR Code"
+              className="mx-auto"
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>
