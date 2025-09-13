@@ -52,6 +52,9 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
 
   const triggerWebhook = async (action: string, instance: Instance) => {
     try {
+      const body = new URLSearchParams({
+        instanceName: instance.instance_name,
+      }).toString();
       const response = await fetch(`${WEBHOOK_BASE}/${action}`, {
         method: "POST",
         // Explicitly enable CORS and include credentials to mirror the
@@ -60,15 +63,21 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
         // misleading CORS "Failed to fetch" error.
         mode: "cors",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ instanceName: instance.instance_name }),
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body,
       });
 
       if (action === "connect") {
-        const data = await response.json().catch(() => null);
-        if (data?.qrcode) {
-          setQrCode(data.qrcode as string);
-          setQrModalOpen(true);
+        const text = await response.text().catch(() => "");
+        try {
+          const data = JSON.parse(text);
+          if (data?.qrcode) {
+            setQrCode(data.qrcode as string);
+            setQrModalOpen(true);
+          }
+        } catch {
+          // Ignore parse errors, which can happen if the browser blocks access
+          // to the response due to missing CORS headers.
         }
       }
     } catch (error) {
