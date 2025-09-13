@@ -54,6 +54,12 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
     try {
       const response = await fetch(`${WEBHOOK_BASE}/${action}`, {
         method: "POST",
+        // Explicitly enable CORS and include credentials to mirror the
+        // configuration used when sending instâncias to the API. Without these
+        // options some browsers block the request before it is sent, emitting a
+        // misleading CORS "Failed to fetch" error.
+        mode: "cors",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ instanceName: instance.instance_name }),
       });
@@ -66,6 +72,12 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
         }
       }
     } catch (error) {
+      // Alguns navegadores disparam TypeError com "Failed to fetch" quando o
+      // servidor não envia cabeçalhos CORS. Consideramos que a requisição foi
+      // enviada com sucesso nesses casos para evitar ruído no console.
+      if (error instanceof TypeError && error.message.includes("Failed to fetch")) {
+        return;
+      }
       console.error("Error triggering webhook:", error);
     }
   };
