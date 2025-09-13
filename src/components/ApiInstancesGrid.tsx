@@ -58,9 +58,10 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
 
       const response = await fetch(`${WEBHOOK_BASE}/${action}`, {
         method: "POST",
-        // Habilitamos CORS e enviamos cookies para espelhar a configuração
-        // usada ao criar instâncias na API. Isso evita erros de bloqueio antes
-        // da requisição ser realmente enviada.
+        // Explicitly enable CORS and include credentials to mirror the
+        // configuration used when sending instâncias to the API. Without these
+        // options some browsers block the request before it is sent, emitting a
+        // misleading CORS "Failed to fetch" error.
         mode: "cors",
         credentials: "include",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -77,8 +78,8 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
         return false;
       }
 
-      const text = await response.text().catch(() => "");
       if (action === "connect") {
+        const text = await response.text().catch(() => "");
         try {
           const data = JSON.parse(text);
           if (data?.qrcode) {
@@ -86,7 +87,8 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
             setQrModalOpen(true);
           }
         } catch {
-          // Ignore parse errors, which can happen if the response isn't JSON.
+          // Ignore parse errors, which can happen if the browser blocks access
+          // to the response due to missing CORS headers.
         }
       }
 
