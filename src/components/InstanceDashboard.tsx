@@ -42,8 +42,6 @@ interface BulkImportInstance {
 }
 
 export function InstanceDashboard() {
-  console.log("InstanceDashboard: Component started rendering");
-  
   const { user, signOut } = useAuth();
   const {
     instances,
@@ -59,8 +57,6 @@ export function InstanceDashboard() {
   const { createProxy } = useProxies();
   const { services, createService, updateService, deleteService } = useServices();
   const { toast } = useToast();
-  
-  console.log("InstanceDashboard: Hooks loaded", { instances, loading });
   
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddingInstance, setIsAddingInstance] = useState(false);
@@ -335,7 +331,6 @@ export function InstanceDashboard() {
   );
 
   if (loading) {
-    console.log("InstanceDashboard: Still loading...");
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -345,8 +340,6 @@ export function InstanceDashboard() {
       </div>
     );
   }
-
-  console.log("InstanceDashboard: Rendering main content", { instancesCount: instances.length });
 
   return (
     <div className="min-h-screen bg-gradient-dark p-6">

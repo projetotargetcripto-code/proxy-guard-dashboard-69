@@ -10,8 +10,6 @@ export interface WebhookData {
 export async function sendToApi(
   data: WebhookData
 ): Promise<{ success: boolean; error?: string }> {
-  console.log("Enviando para API:", data);
-
   const formBody = new URLSearchParams(
     data as Record<string, string>
   ).toString();
@@ -31,8 +29,7 @@ export async function sendToApi(
     );
 
     if (response.ok) {
-      const result = await response.text().catch(() => "OK");
-      console.log("Response result:", result);
+      await response.text().catch(() => "OK");
       return { success: true };
     }
 
