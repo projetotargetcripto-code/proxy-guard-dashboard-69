@@ -65,7 +65,6 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body,
       });
-
       // Quando a resposta for acessível (não "opaque"), validamos o status
       // HTTP e somente retornamos sucesso se response.ok for verdadeiro.
       if (response.type !== "opaque" && !response.ok) {
