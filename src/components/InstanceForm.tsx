@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
-import { Instance, CreateInstanceData, CreateProxyData, Proxy, Service, CreateServiceData, InstanceStatus } from "@/types/instance";
+import { Instance, CreateInstanceData, CreateProxyData, InstanceStatus } from "@/types/instance";
 import { useProxies } from "@/hooks/useProxies";
 import { useServices } from "@/hooks/useServices";
 
@@ -17,7 +17,7 @@ interface InstanceFormProps {
 }
 
 export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps) {
-  const { proxies } = useProxies();
+  const { proxies, updateProxy } = useProxies();
   const { services } = useServices();
   const [formData, setFormData] = useState<CreateInstanceData>({
     instance_name: "",
@@ -41,6 +41,11 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
   const [useExistingProxy, setUseExistingProxy] = useState(true);
   const [showProxyForm, setShowProxyForm] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isEditingProxy, setIsEditingProxy] = useState(false);
+  const [proxyEditFormData, setProxyEditFormData] = useState<CreateProxyData | null>(null);
+  const [proxyEditErrors, setProxyEditErrors] = useState<Record<string, string>>({});
+
+  const selectedProxy = proxies.find((proxy) => proxy.id === formData.proxy_id);
 
   useEffect(() => {
     if (instance) {
@@ -55,12 +60,21 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
         status: instance.status,
       });
       setUseExistingProxy(true);
+      setIsEditingProxy(false);
+      setProxyEditFormData(null);
+      setProxyEditErrors({});
     } else {
       // Auto-generate next instance number
       const maxNumber = proxies.length > 0 ? Math.max(...proxies.map((_, i) => i + 1)) : 0;
       setFormData(prev => ({ ...prev, instance_number: maxNumber + 1 }));
     }
   }, [instance, proxies]);
+
+  useEffect(() => {
+    setIsEditingProxy(false);
+    setProxyEditFormData(null);
+    setProxyEditErrors({});
+  }, [formData.proxy_id, useExistingProxy]);
 
   const handleInputChange = (field: keyof CreateInstanceData, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -72,9 +86,24 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
     clearError(`proxy_${field}`);
   };
 
+  const handleProxyEditInputChange = (field: keyof CreateProxyData, value: string | number) => {
+    setProxyEditFormData(prev => (prev ? { ...prev, [field]: value } : prev));
+    clearProxyEditError(field);
+  };
+
   const clearError = (field: string) => {
     if (errors[field]) {
       setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  const clearProxyEditError = (field: keyof CreateProxyData) => {
+    if (proxyEditErrors[field]) {
+      setProxyEditErrors(prev => {
         const newErrors = { ...prev };
         delete newErrors[field];
         return newErrors;
@@ -132,6 +161,79 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
     e.preventDefault();
     if (validateForm()) {
       onSubmit(formData, useExistingProxy ? undefined : proxyFormData);
+    }
+  };
+
+  const validateProxyEditForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!proxyEditFormData) {
+      return false;
+    }
+
+    if (!proxyEditFormData.name.trim()) {
+      newErrors.name = "Nome do proxy é obrigatório";
+    }
+
+    if (!proxyEditFormData.ip.trim()) {
+      newErrors.ip = "IP do proxy é obrigatório";
+    } else {
+      const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+      if (!ipRegex.test(proxyEditFormData.ip)) {
+        newErrors.ip = "IP inválido";
+      }
+    }
+
+    if (proxyEditFormData.port < 1 || proxyEditFormData.port > 65535) {
+      newErrors.port = "Porta deve estar entre 1 e 65535";
+    }
+
+    if (!proxyEditFormData.username.trim()) {
+      newErrors.username = "Username do proxy é obrigatório";
+    }
+
+    if (!proxyEditFormData.password.trim()) {
+      newErrors.password = "Senha do proxy é obrigatória";
+    }
+
+    setProxyEditErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleStartProxyEdit = () => {
+    if (!selectedProxy) return;
+
+    setProxyEditFormData({
+      name: selectedProxy.name,
+      ip: selectedProxy.ip,
+      port: selectedProxy.port,
+      username: selectedProxy.username,
+      password: selectedProxy.password,
+    });
+    setProxyEditErrors({});
+    setIsEditingProxy(true);
+  };
+
+  const handleCancelProxyEdit = () => {
+    setIsEditingProxy(false);
+    setProxyEditFormData(null);
+    setProxyEditErrors({});
+  };
+
+  const handleSaveProxyEdit = async () => {
+    if (!selectedProxy || !proxyEditFormData) return;
+
+    if (!validateProxyEditForm()) {
+      return;
+    }
+
+    try {
+      await updateProxy(selectedProxy.id, proxyEditFormData);
+      setIsEditingProxy(false);
+      setProxyEditFormData(null);
+      setProxyEditErrors({});
+    } catch (error) {
+      console.error("Error updating proxy:", error);
     }
   };
 
@@ -280,6 +382,110 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
             </Select>
             {errors.proxy_id && (
               <p className="text-sm text-destructive">{errors.proxy_id}</p>
+            )}
+
+            {selectedProxy && (
+              <div className="space-y-4 pt-2">
+                <Button
+                  type="button"
+                  variant={isEditingProxy ? "secondary" : "outline"}
+                  onClick={isEditingProxy ? handleCancelProxyEdit : handleStartProxyEdit}
+                  className={isEditingProxy ? "bg-secondary text-secondary-foreground hover:bg-secondary/90" : ""}
+                >
+                  {isEditingProxy ? "Cancelar edição do proxy" : "Editar Proxy Selecionado"}
+                </Button>
+
+                {isEditingProxy && proxyEditFormData && (
+                  <Card className="bg-muted/30 border-border/50">
+                    <CardContent className="p-4 space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="edit_proxy_name">Nome do Proxy *</Label>
+                          <Input
+                            id="edit_proxy_name"
+                            value={proxyEditFormData.name}
+                            onChange={(e) => handleProxyEditInputChange("name", e.target.value)}
+                            placeholder="Ex: Proxy Brasil 1"
+                            className={proxyEditErrors.name ? "border-destructive" : ""}
+                          />
+                          {proxyEditErrors.name && (
+                            <p className="text-sm text-destructive">{proxyEditErrors.name}</p>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="edit_proxy_ip">IP do Proxy *</Label>
+                          <Input
+                            id="edit_proxy_ip"
+                            value={proxyEditFormData.ip}
+                            onChange={(e) => handleProxyEditInputChange("ip", e.target.value)}
+                            placeholder="Ex: 192.168.1.100"
+                            className={proxyEditErrors.ip ? "border-destructive" : ""}
+                          />
+                          {proxyEditErrors.ip && (
+                            <p className="text-sm text-destructive">{proxyEditErrors.ip}</p>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="edit_proxy_port">Porta do Proxy *</Label>
+                          <Input
+                            id="edit_proxy_port"
+                            type="number"
+                            value={proxyEditFormData.port}
+                            onChange={(e) => handleProxyEditInputChange("port", parseInt(e.target.value) || 0)}
+                            placeholder="Ex: 8080"
+                            min="1"
+                            max="65535"
+                            className={proxyEditErrors.port ? "border-destructive" : ""}
+                          />
+                          {proxyEditErrors.port && (
+                            <p className="text-sm text-destructive">{proxyEditErrors.port}</p>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="edit_proxy_username">Username do Proxy *</Label>
+                          <Input
+                            id="edit_proxy_username"
+                            value={proxyEditFormData.username}
+                            onChange={(e) => handleProxyEditInputChange("username", e.target.value)}
+                            placeholder="Ex: usuario123"
+                            className={proxyEditErrors.username ? "border-destructive" : ""}
+                          />
+                          {proxyEditErrors.username && (
+                            <p className="text-sm text-destructive">{proxyEditErrors.username}</p>
+                          )}
+                        </div>
+
+                        <div className="space-y-2 md:col-span-2">
+                          <Label htmlFor="edit_proxy_password">Senha do Proxy *</Label>
+                          <Input
+                            id="edit_proxy_password"
+                            type="password"
+                            value={proxyEditFormData.password}
+                            onChange={(e) => handleProxyEditInputChange("password", e.target.value)}
+                            placeholder="Digite a senha"
+                            className={proxyEditErrors.password ? "border-destructive" : ""}
+                          />
+                          {proxyEditErrors.password && (
+                            <p className="text-sm text-destructive">{proxyEditErrors.password}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <Button type="button" className="bg-gradient-golden hover:shadow-golden" onClick={handleSaveProxyEdit}>
+                          Salvar Proxy
+                        </Button>
+                        <Button type="button" variant="outline" onClick={handleCancelProxyEdit}>
+                          Cancelar
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             )}
           </div>
         ) : (
