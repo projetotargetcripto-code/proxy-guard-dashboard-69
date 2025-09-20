@@ -79,6 +79,7 @@ export function InstanceDashboard() {
       await createInstance({
         ...instanceData,
         proxy_id: proxyId,
+        service_id: instanceData.service_id || null,
       });
 
       setIsAddingInstance(false);
@@ -100,6 +101,7 @@ export function InstanceDashboard() {
       await updateInstance(instance.id, {
         ...instanceData,
         proxy_id: proxyId,
+        service_id: instanceData.service_id || null,
       });
 
       setEditingInstance(null);
