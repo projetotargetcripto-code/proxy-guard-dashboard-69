@@ -26,7 +26,7 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
     pid2: "0000",
     phone_number: "",
     proxy_id: "",
-    service_id: "",
+    service_id: null,
     status: "Repouso",
   });
 
@@ -56,7 +56,7 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
         pid2: instance.pid2,
         phone_number: instance.phone_number || "",
         proxy_id: instance.proxy_id,
-        service_id: instance.service_id || "",
+        service_id: instance.service_id ?? null,
         status: instance.status,
       });
       setUseExistingProxy(true);
@@ -76,9 +76,12 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
     setProxyEditErrors({});
   }, [formData.proxy_id, useExistingProxy]);
 
-  const handleInputChange = (field: keyof CreateInstanceData, value: string | number) => {
+  const handleInputChange = <K extends keyof CreateInstanceData>(
+    field: K,
+    value: CreateInstanceData[K],
+  ) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    clearError(field);
+    clearError(field as string);
   };
 
   const handleProxyInputChange = (field: keyof CreateProxyData, value: string | number) => {
@@ -283,9 +286,9 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
         <div className="space-y-2">
           <Label htmlFor="service_id">Serviço</Label>
           <Select
-            value={formData.service_id || undefined}
+            value={formData.service_id ?? "none"}
             onValueChange={(value) =>
-              handleInputChange("service_id", value === "none" ? "" : value)
+              handleInputChange("service_id", value === "none" ? null : value)
             }
           >
             <SelectTrigger>

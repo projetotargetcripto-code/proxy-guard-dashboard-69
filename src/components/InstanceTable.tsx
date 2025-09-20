@@ -488,7 +488,7 @@ export function InstanceTable({
           <div className="space-y-2">
             <Label>Serviço</Label>
             <Select
-              value={selectedService}
+              value={selectedService ?? "none"}
               onValueChange={(value) =>
                 setSelectedService(value === "none" ? undefined : value)
               }
@@ -544,7 +544,7 @@ export function InstanceTable({
           <div className="space-y-2">
             <Label>Serviço</Label>
             <Select
-              value={bulkService}
+              value={bulkService ?? "none"}
               onValueChange={(value) =>
                 setBulkService(value === "none" ? undefined : value)
               }
