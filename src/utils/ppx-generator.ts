@@ -47,12 +47,25 @@ const PPX_TEMPLATE = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 
 	<ChainList />
 
-	<RuleList>
-		<!-- BEGIN:DYNAMIC_RULE_LIST (uma regra por instância) -->
+        <RuleList>
+                <!-- BEGIN:DYNAMIC_RULE_LIST (uma regra por instância) -->
 {{RULE_LIST}}
-		<!-- END:DYNAMIC_RULE_LIST -->
+                <!-- END:DYNAMIC_RULE_LIST -->
 
-		<!-- STATIC: Regra default sempre apontando para CONECTANDO (id 104). Não remover. -->
+                <!-- STATIC: Regras fixas adicionais -->
+                <Rule enabled="true">
+                        <Action type="Direct" />
+                        <Applications>adb.exe; javaw.exe; chrome.exe; wmi.exe</Applications>
+                        <Name>New</Name>
+                </Rule>
+                <Rule enabled="true">
+                        <Action type="Direct" />
+                        <Targets>{TODOSPROXYS}</Targets>
+                        <Applications>msedgewebview2.exe</Applications>
+                        <Name>msbrowser</Name>
+                </Rule>
+
+                <!-- STATIC: Regra default sempre apontando para CONECTANDO (id 104). Não remover. -->
                 <Rule enabled="true">
                         <Action type="Proxy">104</Action>
                         <Name>Default</Name>
@@ -195,12 +208,22 @@ export async function generatePpxXml(): Promise<string> {
     .join('\n');
   
   const ruleList = rows
-    .map(renderRule) 
+    .map(renderRule)
     .filter(rule => rule.length > 0) // Remover regras inválidas
     .join('\n');
 
+  const allProxyIps = Array.from(
+    new Set(
+      rows
+        .map(row => row.proxy_ip?.trim())
+        .filter((ip): ip is string => Boolean(ip))
+    )
+  );
+  const allProxyTargets = allProxyIps.map(ip => xmlEscape(ip)).join('; ');
+
   // Gerar XML final (sem regras estáticas - já incluídas no template)
   const xml = PPX_TEMPLATE
+    .replace('{TODOSPROXYS}', allProxyTargets)
     .replace('{{PROXY_LIST}}', proxyList)
     .replace('{{RULE_LIST}}', ruleList);
 
