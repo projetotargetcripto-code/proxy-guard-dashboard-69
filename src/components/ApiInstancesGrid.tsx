@@ -36,7 +36,10 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
   const [connectionState, setConnectionState] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
-  const [connectionImage, setConnectionImage] = useState<string | null>(null);
+  const [connectionImage, setConnectionImage] = useState<
+    { data: string; mimeType: string }
+    | null
+  >(null);
   const [connectionMessage, setConnectionMessage] = useState<string | null>(
     null,
   );
@@ -78,15 +81,17 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
     return () => window.clearInterval(interval);
   }, [connectionDialogOpen, connectionState]);
 
-  const parseWebhookText = (text: string) => {
+  const parseWebhookText = (
+    text: string,
+  ): Record<string, unknown> | { raw: string } | null => {
     if (!text) {
-      return {} as Record<string, unknown>;
+      return null;
     }
 
     try {
       return JSON.parse(text) as Record<string, unknown>;
     } catch {
-      return { raw: text } as Record<string, unknown>;
+      return { raw: text };
     }
   };
 
@@ -105,10 +110,68 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
       "border-red-700 bg-gradient-to-br from-red-700 to-rose-800",
   };
 
+  const blobToBase64 = (blob: Blob): Promise<{ base64: string; mimeType: string }> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result !== "string") {
+          reject(new Error("Falha ao converter imagem."));
+          return;
+        }
+
+        const [metadata, data] = reader.result.split(",", 2);
+        const mimeTypeMatch = metadata?.match(/data:(.*?);base64/);
+
+        resolve({
+          base64: data ?? "",
+          mimeType: mimeTypeMatch?.[1] ?? blob.type ?? "image/png",
+        });
+      };
+      reader.onerror = () => {
+        reject(reader.error ?? new Error("Erro ao ler imagem."));
+      };
+      reader.readAsDataURL(blob);
+    });
+
+  const normalizeImagePayload = (
+    value: string,
+    fallbackMimeType = "image/png",
+  ): { data: string; mimeType: string } | null => {
+    const trimmed = value.trim();
+
+    if (!trimmed) {
+      return null;
+    }
+
+    if (trimmed.startsWith("data:")) {
+      const [metadata, data] = trimmed.split(",", 2);
+      const mimeTypeMatch = metadata?.match(/data:(.*?);base64/);
+
+      return {
+        data: data ?? "",
+        mimeType: mimeTypeMatch?.[1] ?? fallbackMimeType,
+      };
+    }
+
+    return {
+      data: trimmed,
+      mimeType: fallbackMimeType,
+    };
+  };
+
+  type TriggerWebhookResult = {
+    ok: boolean;
+    status: number;
+    text?: string;
+    json?: unknown;
+    image?: { base64: string; mimeType: string } | null;
+    errorMessage?: string;
+  };
+
   const triggerWebhook = async (
     action: string,
     instance: Instance,
-  ): Promise<{ ok: boolean; text: string; status: number }> => {
+  ): Promise<TriggerWebhookResult> => {
     try {
       const body = new URLSearchParams({
         instanceName: instance.instance_name,
@@ -121,7 +184,47 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
         body,
       });
 
-      const text = await response.text().catch(() => "");
+      const responseClone = response.clone();
+      const contentType =
+        response.headers.get("content-type")?.toLowerCase() ?? "";
+      const contentDisposition =
+        response.headers.get("content-disposition")?.toLowerCase() ?? "";
+      let text = "";
+      let parsedJson: unknown;
+      let image: TriggerWebhookResult["image"] = null;
+
+      try {
+        text = await response.text();
+        if (text) {
+          try {
+            parsedJson = JSON.parse(text) as unknown;
+          } catch {
+            parsedJson = undefined;
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao ler resposta do webhook:", error);
+        text = "";
+      }
+
+      try {
+        const blob = await responseClone.blob();
+        const blobType = blob.type?.toLowerCase();
+
+        const shouldProcessImage =
+          blob.size > 0 &&
+          (blobType?.startsWith("image/") ||
+            contentType.startsWith("image/") ||
+            contentDisposition.includes("qrcode") ||
+            contentDisposition.includes(".png"));
+
+        if (shouldProcessImage) {
+          const { base64, mimeType } = await blobToBase64(blob);
+          image = { base64, mimeType };
+        }
+      } catch (error) {
+        console.error("Erro ao processar imagem retornada pelo webhook:", error);
+      }
 
       if (!response.ok) {
         console.error(
@@ -135,6 +238,9 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
         ok: response.ok,
         text,
         status: response.status,
+        json: parsedJson,
+        image,
+        errorMessage: !response.ok ? text : undefined,
       };
     } catch (error) {
       console.error("Error triggering webhook:", error);
@@ -149,6 +255,9 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
         ok: false,
         text: message,
         status: 0,
+        image: null,
+        json: undefined,
+        errorMessage: message,
       };
     }
   };
@@ -163,55 +272,97 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
 
     const result = await triggerWebhook("connect", instance);
 
-    const data = parseWebhookText(result.text);
+    const responseData =
+      result.json ?? parseWebhookText(result.text ?? "") ?? undefined;
 
     if (!result.ok) {
       const errorMessage =
-        (typeof data === "object" && data !== null && "error" in data
-          ? (data as { error?: string }).error
-          : undefined) || result.text || "Erro ao conectar instância.";
+        (responseData &&
+          typeof responseData === "object" &&
+          responseData !== null &&
+          "error" in responseData &&
+          typeof (responseData as { error?: unknown }).error === "string"
+          ? (responseData as { error: string }).error
+          : undefined) ||
+        result.errorMessage ||
+        result.text ||
+        "Erro ao conectar instância.";
 
       setConnectionError(errorMessage ?? "Erro ao conectar instância.");
       setConnectionState("error");
       return;
     }
 
-    if (typeof data === "object" && data !== null) {
-      if ("error" in data && typeof (data as { error: unknown }).error === "string") {
-        setConnectionError((data as { error: string }).error);
+    if (result.image && result.image.base64) {
+      setConnectionImage({
+        data: result.image.base64,
+        mimeType: result.image.mimeType,
+      });
+      setConnectionMessage("Escaneie o código para conectar a instância.");
+      setConnectionState("success");
+      return;
+    }
+
+    if (responseData && typeof responseData === "object") {
+      if ("error" in responseData && typeof (responseData as { error: unknown }).error === "string") {
+        setConnectionError((responseData as { error: string }).error);
         setConnectionState("error");
         return;
       }
 
-      if ("qrcode" in data && typeof (data as { qrcode: unknown }).qrcode === "string") {
-        setConnectionImage((data as { qrcode: string }).qrcode);
-        setConnectionMessage("Escaneie o código para conectar a instância.");
-        setConnectionState("success");
-        return;
+      if ("qrcode" in responseData && typeof (responseData as { qrcode: unknown }).qrcode === "string") {
+        const normalized = normalizeImagePayload(
+          (responseData as { qrcode: string }).qrcode,
+        );
+
+        if (normalized) {
+          setConnectionImage(normalized);
+          setConnectionMessage("Escaneie o código para conectar a instância.");
+          setConnectionState("success");
+          return;
+        }
       }
 
-      if ("image" in data && typeof (data as { image: unknown }).image === "string") {
-        setConnectionImage((data as { image: string }).image);
-        setConnectionMessage("Escaneie o código para conectar a instância.");
-        setConnectionState("success");
-        return;
+      if ("image" in responseData && typeof (responseData as { image: unknown }).image === "string") {
+        const normalized = normalizeImagePayload(
+          (responseData as { image: string }).image,
+        );
+
+        if (normalized) {
+          setConnectionImage(normalized);
+          setConnectionMessage("Escaneie o código para conectar a instância.");
+          setConnectionState("success");
+          return;
+        }
       }
 
-      if ("message" in data && typeof (data as { message: unknown }).message === "string") {
-        const message = (data as { message: string }).message.trim();
+      if (
+        "message" in responseData &&
+        typeof (responseData as { message: unknown }).message === "string"
+      ) {
+        const message = (responseData as { message: string }).message.trim();
         setConnectionMessage(message || "Conexão realizada com sucesso.");
         setConnectionState("success");
         return;
       }
+
+      if (
+        "raw" in responseData &&
+        typeof (responseData as { raw: unknown }).raw === "string"
+      ) {
+        const rawMessage = (responseData as { raw: string }).raw.trim();
+        if (rawMessage) {
+          setConnectionMessage(rawMessage);
+          setConnectionState("success");
+          return;
+        }
+      }
     }
 
-    if (typeof data === "object" && data !== null && "raw" in data) {
-      const raw = String((data as { raw: unknown }).raw).trim();
-      if (raw) {
-        setConnectionMessage(raw);
-        setConnectionState("success");
-        return;
-      }
+    if (typeof result.text === "string" && result.text.trim()) {
+      setConnectionMessage(result.text.trim());
+      setConnectionState("success");
+      return;
     }
 
     setConnectionMessage("Conexão realizada com sucesso.");
@@ -337,7 +488,7 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
             <div className="space-y-4 text-center">
               {connectionImage && (
                 <img
-                  src={`data:image/png;base64,${connectionImage}`}
+                  src={`data:${connectionImage.mimeType};base64,${connectionImage.data}`}
                   alt="QR Code"
                   className="mx-auto"
                 />
