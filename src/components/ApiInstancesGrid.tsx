@@ -26,7 +26,7 @@ interface ApiInstancesGridProps {
   onUpdateStatus: (id: string, status: InstanceStatus) => Promise<void> | void;
 }
 
-const WEBHOOK_BASE = "https://webhook.targetfuturos.com";
+const WEBHOOK_BASE = "https://webhook.targetfuturos.com/webhook";
 
 export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdateStatus }: ApiInstancesGridProps) {
   const [statusModalOpen, setStatusModalOpen] = useState(false);
@@ -58,12 +58,7 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
 
       const response = await fetch(`${WEBHOOK_BASE}/${action}`, {
         method: "POST",
-        // Explicitly enable CORS and include credentials to mirror the
-        // configuration used when sending instâncias to the API. Without these
-        // options some browsers block the request before it is sent, emitting a
-        // misleading CORS "Failed to fetch" error.
         mode: "cors",
-        credentials: "include",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body,
       });
