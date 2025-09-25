@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Instance, InstanceStatus } from "@/types/instance";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,12 +24,21 @@ interface ApiInstancesGridProps {
   loading?: boolean;
   onRemoveFromApi: (id: string) => Promise<void> | void;
   onUpdateStatus: (id: string, status: InstanceStatus) => Promise<void> | void;
+  triggerTestAll?: number;
+  onTestingAllChange?: (isTesting: boolean) => void;
 }
 
 const WEBHOOK_BASE = "https://webhook.targetfuturos.com/webhook";
 const TEST_CONNECTION_WEBHOOK = `${WEBHOOK_BASE}/confirma`;
 
-export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdateStatus }: ApiInstancesGridProps) {
+export function ApiInstancesGrid({
+  instances,
+  loading,
+  onRemoveFromApi,
+  onUpdateStatus,
+  triggerTestAll,
+  onTestingAllChange,
+}: ApiInstancesGridProps) {
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState<Instance | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<InstanceStatus>("Repouso");
@@ -55,6 +64,8 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
       }
     >
   >({});
+  const [isTestingAll, setIsTestingAll] = useState(false);
+  const triggerTestAllRef = useRef(triggerTestAll);
 
   const handleCloseConnectionDialog = () => {
     setConnectionDialogOpen(false);
@@ -502,6 +513,57 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
     setConnectionState("success");
   };
 
+  useEffect(() => {
+    if (triggerTestAll === undefined) {
+      return;
+    }
+
+    if (triggerTestAllRef.current === triggerTestAll) {
+      return;
+    }
+
+    triggerTestAllRef.current = triggerTestAll;
+
+    let cancelled = false;
+
+    const runSequentialTests = async () => {
+      if (apiInstances.length === 0) {
+        return;
+      }
+
+      setIsTestingAll(true);
+      onTestingAllChange?.(true);
+
+      for (let index = 0; index < apiInstances.length; index += 1) {
+        if (cancelled) {
+          break;
+        }
+
+        await handleTestConnection(apiInstances[index]);
+
+        if (cancelled) {
+          break;
+        }
+
+        if (index < apiInstances.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      }
+
+      if (!cancelled) {
+        setIsTestingAll(false);
+        onTestingAllChange?.(false);
+      }
+    };
+
+    runSequentialTests();
+
+    return () => {
+      cancelled = true;
+      onTestingAllChange?.(false);
+    };
+  }, [triggerTestAll, apiInstances, onTestingAllChange]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -539,7 +601,10 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
               </Button>
               <Button
                 onClick={() => handleTestConnection(apiInstance)}
-                disabled={testConnectionResults[apiInstance.id]?.status === "loading"}
+                disabled={
+                  isTestingAll ||
+                  testConnectionResults[apiInstance.id]?.status === "loading"
+                }
               >
                 {testConnectionResults[apiInstance.id]?.status === "loading" ? (
                   <span className="flex items-center gap-2">
@@ -550,11 +615,13 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
                   "Testar Conexão"
                 )}
               </Button>
-              <Button onClick={() => {
-                setSelectedInstance(apiInstance);
-                setSelectedStatus(apiInstance.status);
-                setStatusModalOpen(true);
-              }}>
+              <Button
+                onClick={() => {
+                  setSelectedInstance(apiInstance);
+                  setSelectedStatus(apiInstance.status);
+                  setStatusModalOpen(true);
+                }}
+              >
                 Status
               </Button>
               <Button
