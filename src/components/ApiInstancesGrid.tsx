@@ -27,6 +27,7 @@ interface ApiInstancesGridProps {
 }
 
 const WEBHOOK_BASE = "https://webhook.targetfuturos.com/webhook";
+const TEST_CONNECTION_WEBHOOK = `${WEBHOOK_BASE}/confirma`;
 
 export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdateStatus }: ApiInstancesGridProps) {
   const [statusModalOpen, setStatusModalOpen] = useState(false);
@@ -45,6 +46,16 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
   );
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(15);
+  const [testConnectionResults, setTestConnectionResults] = useState<
+    Record<
+      string,
+      {
+        status: "idle" | "loading" | "positive" | "negative" | "error";
+        message: string;
+      }
+    >
+  >({});
+  const [isTestingAll, setIsTestingAll] = useState(false);
 
   const handleCloseConnectionDialog = () => {
     setConnectionDialogOpen(false);
@@ -109,6 +120,11 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
     Banida:
       "border-red-700 bg-gradient-to-br from-red-700 to-rose-800",
   };
+
+  const delay = (ms: number) =>
+    new Promise<void>((resolve) => {
+      setTimeout(resolve, ms);
+    });
 
   const blobToBase64 = (blob: Blob): Promise<{ base64: string; mimeType: string }> =>
     new Promise((resolve, reject) => {
@@ -262,6 +278,151 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
     }
   };
 
+  const handleTestConnection = async (instance: Instance) => {
+    setTestConnectionResults((prev) => ({
+      ...prev,
+      [instance.id]: { status: "loading", message: "Testando conexão..." },
+    }));
+
+    try {
+      const response = await fetch(TEST_CONNECTION_WEBHOOK, {
+        method: "POST",
+        mode: "cors",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json, text/plain",
+        },
+        body: JSON.stringify({ instanceName: instance.instance_name }),
+      });
+
+      const responseClone = response.clone();
+      const rawText = (await response.text()).trim();
+      let parsedJson: unknown;
+
+      if (rawText) {
+        try {
+          parsedJson = JSON.parse(rawText) as unknown;
+        } catch {
+          parsedJson = undefined;
+        }
+      } else {
+        try {
+          parsedJson = await responseClone.json();
+        } catch {
+          parsedJson = undefined;
+        }
+      }
+
+      const extractStatusFromJson = (value: unknown): string | null => {
+        if (!value || typeof value !== "object") {
+          return null;
+        }
+
+        if (
+          "status" in value &&
+          typeof (value as { status?: unknown }).status === "string"
+        ) {
+          return (value as { status: string }).status;
+        }
+
+        if (
+          "message" in value &&
+          typeof (value as { message?: unknown }).message === "string"
+        ) {
+          return (value as { message: string }).message;
+        }
+
+        if (
+          "result" in value &&
+          typeof (value as { result?: unknown }).result === "string"
+        ) {
+          return (value as { result: string }).result;
+        }
+
+        return null;
+      };
+
+      const combinedResponse = (rawText || extractStatusFromJson(parsedJson) || "")
+        .toString()
+        .trim();
+      const normalizedResponse = combinedResponse.toLowerCase();
+
+      const isPositive = normalizedResponse.includes("positivo");
+      const isNegative = normalizedResponse.includes("negativo");
+
+      if (!response.ok) {
+        throw new Error(rawText || "Falha ao testar conexão.");
+      }
+
+      if (isPositive) {
+        setTestConnectionResults((prev) => ({
+          ...prev,
+          [instance.id]: {
+            status: "positive",
+            message: "Conta conectada e ativa.",
+          },
+        }));
+        return;
+      }
+
+      if (isNegative) {
+        setTestConnectionResults((prev) => ({
+          ...prev,
+          [instance.id]: {
+            status: "negative",
+            message: "Conta desconectada.",
+          },
+        }));
+        return;
+      }
+
+      setTestConnectionResults((prev) => ({
+        ...prev,
+        [instance.id]: {
+          status: "positive",
+          message: combinedResponse
+            ? combinedResponse
+            : "Conta conectada e ativa.",
+        },
+      }));
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Não foi possível testar a conexão.";
+
+      setTestConnectionResults((prev) => ({
+        ...prev,
+        [instance.id]: {
+          status: "error",
+          message,
+        },
+      }));
+    }
+  };
+
+  const handleTestAllConnections = async () => {
+    if (isTestingAll) {
+      return;
+    }
+
+    setIsTestingAll(true);
+
+    try {
+      for (let index = 0; index < apiInstances.length; index += 1) {
+        const instance = apiInstances[index];
+
+        void handleTestConnection(instance);
+
+        if (index < apiInstances.length - 1) {
+          await delay(1000);
+        }
+      }
+    } finally {
+      setIsTestingAll(false);
+    }
+  };
+
   const handleConnect = async (instance: Instance) => {
     setConnectionDialogOpen(true);
     setConnectionState("loading");
@@ -386,12 +547,28 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {apiInstances.map((apiInstance) => (
-        <Card
-          key={apiInstance.id}
-          className={`${statusStyles[apiInstance.status]} rounded-lg shadow-sm transition-all duration-300 hover:shadow-lg hover:scale-105 hover:-translate-y-1 animate-fade-in`}
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button
+          onClick={handleTestAllConnections}
+          disabled={isTestingAll}
         >
+          {isTestingAll ? (
+            <span className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Testando...
+            </span>
+          ) : (
+            "Testar todas as instâncias"
+          )}
+        </Button>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {apiInstances.map((apiInstance) => (
+          <Card
+            key={apiInstance.id}
+            className={`${statusStyles[apiInstance.status]} rounded-lg shadow-sm transition-all duration-300 hover:shadow-lg hover:scale-105 hover:-translate-y-1 animate-fade-in`}
+          >
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               {apiInstance.instance_name}
@@ -404,8 +581,21 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
               <Button onClick={() => handleConnect(apiInstance)}>
                 Conectar
               </Button>
-              <Button onClick={() => triggerWebhook("disconnect", apiInstance)}>
-                Desconectar
+              <Button
+                onClick={() => handleTestConnection(apiInstance)}
+                disabled={
+                  isTestingAll ||
+                  testConnectionResults[apiInstance.id]?.status === "loading"
+                }
+              >
+                {testConnectionResults[apiInstance.id]?.status === "loading" ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Testando...
+                  </span>
+                ) : (
+                  "Testar Conexão"
+                )}
               </Button>
               <Button onClick={() => {
                 setSelectedInstance(apiInstance);
@@ -421,9 +611,25 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
                 Remover
               </Button>
             </div>
+            {testConnectionResults[apiInstance.id] && (
+              <div
+                className={`text-sm font-medium ${
+                  testConnectionResults[apiInstance.id]?.status === "positive"
+                    ? "text-emerald-300"
+                    : testConnectionResults[apiInstance.id]?.status === "negative"
+                      ? "text-red-300"
+                      : testConnectionResults[apiInstance.id]?.status === "error"
+                        ? "text-yellow-300"
+                        : "text-muted-foreground"
+                }`}
+              >
+                {testConnectionResults[apiInstance.id]?.message}
+              </div>
+            )}
           </CardContent>
         </Card>
       ))}
+      </div>
       <Dialog open={statusModalOpen} onOpenChange={setStatusModalOpen}>
         <DialogContent>
           <DialogHeader>
