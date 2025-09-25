@@ -27,6 +27,7 @@ interface ApiInstancesGridProps {
 }
 
 const WEBHOOK_BASE = "https://webhook.targetfuturos.com/webhook";
+const TEST_CONNECTION_WEBHOOK = `${WEBHOOK_BASE}/confirma`;
 
 export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdateStatus }: ApiInstancesGridProps) {
   const [statusModalOpen, setStatusModalOpen] = useState(false);
@@ -45,6 +46,15 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
   );
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(15);
+  const [testConnectionResults, setTestConnectionResults] = useState<
+    Record<
+      string,
+      {
+        status: "idle" | "loading" | "positive" | "negative" | "error";
+        message: string;
+      }
+    >
+  >({});
 
   const handleCloseConnectionDialog = () => {
     setConnectionDialogOpen(false);
@@ -262,6 +272,129 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
     }
   };
 
+  const handleTestConnection = async (instance: Instance) => {
+    setTestConnectionResults((prev) => ({
+      ...prev,
+      [instance.id]: { status: "loading", message: "Testando conexão..." },
+    }));
+
+    try {
+      const response = await fetch(TEST_CONNECTION_WEBHOOK, {
+        method: "POST",
+        mode: "cors",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json, text/plain",
+        },
+        body: JSON.stringify({ instanceName: instance.instance_name }),
+      });
+
+      const responseClone = response.clone();
+      const rawText = (await response.text()).trim();
+      let parsedJson: unknown;
+
+      if (rawText) {
+        try {
+          parsedJson = JSON.parse(rawText) as unknown;
+        } catch {
+          parsedJson = undefined;
+        }
+      } else {
+        try {
+          parsedJson = await responseClone.json();
+        } catch {
+          parsedJson = undefined;
+        }
+      }
+
+      const extractStatusFromJson = (value: unknown): string | null => {
+        if (!value || typeof value !== "object") {
+          return null;
+        }
+
+        if (
+          "status" in value &&
+          typeof (value as { status?: unknown }).status === "string"
+        ) {
+          return (value as { status: string }).status;
+        }
+
+        if (
+          "message" in value &&
+          typeof (value as { message?: unknown }).message === "string"
+        ) {
+          return (value as { message: string }).message;
+        }
+
+        if (
+          "result" in value &&
+          typeof (value as { result?: unknown }).result === "string"
+        ) {
+          return (value as { result: string }).result;
+        }
+
+        return null;
+      };
+
+      const combinedResponse = (rawText || extractStatusFromJson(parsedJson) || "")
+        .toString()
+        .trim();
+      const normalizedResponse = combinedResponse.toLowerCase();
+
+      const isPositive = normalizedResponse.includes("positivo");
+      const isNegative = normalizedResponse.includes("negativo");
+
+      if (!response.ok) {
+        throw new Error(rawText || "Falha ao testar conexão.");
+      }
+
+      if (isPositive) {
+        setTestConnectionResults((prev) => ({
+          ...prev,
+          [instance.id]: {
+            status: "positive",
+            message: "Conta conectada e ativa.",
+          },
+        }));
+        return;
+      }
+
+      if (isNegative) {
+        setTestConnectionResults((prev) => ({
+          ...prev,
+          [instance.id]: {
+            status: "negative",
+            message: "Conta desconectada.",
+          },
+        }));
+        return;
+      }
+
+      setTestConnectionResults((prev) => ({
+        ...prev,
+        [instance.id]: {
+          status: "positive",
+          message: combinedResponse
+            ? combinedResponse
+            : "Conta conectada e ativa.",
+        },
+      }));
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Não foi possível testar a conexão.";
+
+      setTestConnectionResults((prev) => ({
+        ...prev,
+        [instance.id]: {
+          status: "error",
+          message,
+        },
+      }));
+    }
+  };
+
   const handleConnect = async (instance: Instance) => {
     setConnectionDialogOpen(true);
     setConnectionState("loading");
@@ -404,8 +537,18 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
               <Button onClick={() => handleConnect(apiInstance)}>
                 Conectar
               </Button>
-              <Button onClick={() => triggerWebhook("disconnect", apiInstance)}>
-                Desconectar
+              <Button
+                onClick={() => handleTestConnection(apiInstance)}
+                disabled={testConnectionResults[apiInstance.id]?.status === "loading"}
+              >
+                {testConnectionResults[apiInstance.id]?.status === "loading" ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Testando...
+                  </span>
+                ) : (
+                  "Testar Conexão"
+                )}
               </Button>
               <Button onClick={() => {
                 setSelectedInstance(apiInstance);
@@ -421,6 +564,21 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
                 Remover
               </Button>
             </div>
+            {testConnectionResults[apiInstance.id] && (
+              <div
+                className={`text-sm font-medium ${
+                  testConnectionResults[apiInstance.id]?.status === "positive"
+                    ? "text-emerald-300"
+                    : testConnectionResults[apiInstance.id]?.status === "negative"
+                      ? "text-red-300"
+                      : testConnectionResults[apiInstance.id]?.status === "error"
+                        ? "text-yellow-300"
+                        : "text-muted-foreground"
+                }`}
+              >
+                {testConnectionResults[apiInstance.id]?.message}
+              </div>
+            )}
           </CardContent>
         </Card>
       ))}
