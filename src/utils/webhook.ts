@@ -24,7 +24,6 @@ export async function sendToApi(
           "Content-Type": "application/x-www-form-urlencoded",
         },
         body: formBody,
-        credentials: "include",
       }
     );
 
