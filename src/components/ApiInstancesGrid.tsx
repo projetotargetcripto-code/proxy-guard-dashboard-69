@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Instance, InstanceStatus } from "@/types/instance";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,8 +32,63 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState<Instance | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<InstanceStatus>("Repouso");
-  const [qrModalOpen, setQrModalOpen] = useState(false);
-  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
+  const [connectionState, setConnectionState] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
+  const [connectionImage, setConnectionImage] = useState<string | null>(null);
+  const [connectionMessage, setConnectionMessage] = useState<string | null>(
+    null,
+  );
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(15);
+
+  const handleCloseConnectionDialog = () => {
+    setConnectionDialogOpen(false);
+    setConnectionState("idle");
+    setConnectionImage(null);
+    setConnectionMessage(null);
+    setConnectionError(null);
+    setCountdown(15);
+  };
+
+  useEffect(() => {
+    if (!connectionDialogOpen) {
+      return;
+    }
+
+    if (connectionState !== "success" && connectionState !== "error") {
+      return;
+    }
+
+    setCountdown(15);
+
+    const interval = window.setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          window.clearInterval(interval);
+          handleCloseConnectionDialog();
+          return 0;
+        }
+
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [connectionDialogOpen, connectionState]);
+
+  const parseWebhookText = (text: string) => {
+    if (!text) {
+      return {} as Record<string, unknown>;
+    }
+
+    try {
+      return JSON.parse(text) as Record<string, unknown>;
+    } catch {
+      return { raw: text } as Record<string, unknown>;
+    }
+  };
 
   const apiInstances = instances
     .filter((inst) => inst.sent_to_api)
@@ -50,7 +105,10 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
       "border-red-700 bg-gradient-to-br from-red-700 to-rose-800",
   };
 
-  const triggerWebhook = async (action: string, instance: Instance): Promise<boolean> => {
+  const triggerWebhook = async (
+    action: string,
+    instance: Instance,
+  ): Promise<{ ok: boolean; text: string; status: number }> => {
     try {
       const body = new URLSearchParams({
         instanceName: instance.instance_name,
@@ -63,37 +121,101 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
         body,
       });
 
+      const text = await response.text().catch(() => "");
+
       if (!response.ok) {
-        const errorText = await response.text().catch(() => "");
-        console.error("Erro HTTP ao acionar webhook:", response.status, errorText);
-        return false;
+        console.error(
+          "Erro HTTP ao acionar webhook:",
+          response.status,
+          text,
+        );
       }
 
-      if (action === "connect") {
-        const text = await response.text().catch(() => "");
-        try {
-          const data = JSON.parse(text);
-          if (data?.qrcode) {
-            setQrCode(data.qrcode as string);
-            setQrModalOpen(true);
-          }
-        } catch {
-          // Ignore parse errors, which can happen if the browser blocks access
-          // to the response due to missing CORS headers.
-        }
-      }
-
-      return true;
+      return {
+        ok: response.ok,
+        text,
+        status: response.status,
+      };
     } catch (error) {
-      // Alguns navegadores disparam TypeError com "Failed to fetch" quando o
-      // servidor não envia cabeçalhos CORS. Consideramos que a requisição foi
-      // enviada com sucesso nesses casos para evitar ruído no console.
-      if (error instanceof TypeError && error.message.includes("Failed to fetch")) {
-        return true;
-      }
       console.error("Error triggering webhook:", error);
-      return false;
+      const message =
+        error instanceof Error
+          ? error.message.includes("Failed to fetch")
+            ? "Não foi possível contatar o webhook."
+            : error.message
+          : "Erro desconhecido ao conectar.";
+
+      return {
+        ok: false,
+        text: message,
+        status: 0,
+      };
     }
+  };
+
+  const handleConnect = async (instance: Instance) => {
+    setConnectionDialogOpen(true);
+    setConnectionState("loading");
+    setConnectionImage(null);
+    setConnectionMessage(null);
+    setConnectionError(null);
+    setCountdown(15);
+
+    const result = await triggerWebhook("connect", instance);
+
+    const data = parseWebhookText(result.text);
+
+    if (!result.ok) {
+      const errorMessage =
+        (typeof data === "object" && data !== null && "error" in data
+          ? (data as { error?: string }).error
+          : undefined) || result.text || "Erro ao conectar instância.";
+
+      setConnectionError(errorMessage ?? "Erro ao conectar instância.");
+      setConnectionState("error");
+      return;
+    }
+
+    if (typeof data === "object" && data !== null) {
+      if ("error" in data && typeof (data as { error: unknown }).error === "string") {
+        setConnectionError((data as { error: string }).error);
+        setConnectionState("error");
+        return;
+      }
+
+      if ("qrcode" in data && typeof (data as { qrcode: unknown }).qrcode === "string") {
+        setConnectionImage((data as { qrcode: string }).qrcode);
+        setConnectionMessage("Escaneie o código para conectar a instância.");
+        setConnectionState("success");
+        return;
+      }
+
+      if ("image" in data && typeof (data as { image: unknown }).image === "string") {
+        setConnectionImage((data as { image: string }).image);
+        setConnectionMessage("Escaneie o código para conectar a instância.");
+        setConnectionState("success");
+        return;
+      }
+
+      if ("message" in data && typeof (data as { message: unknown }).message === "string") {
+        const message = (data as { message: string }).message.trim();
+        setConnectionMessage(message || "Conexão realizada com sucesso.");
+        setConnectionState("success");
+        return;
+      }
+    }
+
+    if (typeof data === "object" && data !== null && "raw" in data) {
+      const raw = String((data as { raw: unknown }).raw).trim();
+      if (raw) {
+        setConnectionMessage(raw);
+        setConnectionState("success");
+        return;
+      }
+    }
+
+    setConnectionMessage("Conexão realizada com sucesso.");
+    setConnectionState("success");
   };
 
   if (loading) {
@@ -128,7 +250,7 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
           <CardContent className="space-y-2">
             <div>Telefone: {apiInstance.phone_number || ""}</div>
             <div className="flex flex-wrap gap-2">
-              <Button onClick={() => triggerWebhook("connect", apiInstance)}>
+              <Button onClick={() => handleConnect(apiInstance)}>
                 Conectar
               </Button>
               <Button onClick={() => triggerWebhook("disconnect", apiInstance)}>
@@ -187,20 +309,55 @@ export function ApiInstancesGrid({ instances, loading, onRemoveFromApi, onUpdate
           </div>
         </DialogContent>
       </Dialog>
-      <Dialog open={qrModalOpen} onOpenChange={setQrModalOpen}>
+      <Dialog
+        open={connectionDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleCloseConnectionDialog();
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>QR Code</DialogTitle>
+            <DialogTitle>Conexão da instância</DialogTitle>
             <DialogDescription>
-              Escaneie o código para conectar a instância.
+              {connectionState === "loading" || connectionState === "idle"
+                ? "Aguardando resposta do webhook..."
+                : connectionState === "success"
+                  ? "Resposta recebida com sucesso."
+                  : "O webhook retornou um erro."}
             </DialogDescription>
           </DialogHeader>
-          {qrCode && (
-            <img
-              src={`data:image/png;base64,${qrCode}`}
-              alt="QR Code"
-              className="mx-auto"
-            />
+          {connectionState === "loading" && (
+            <div className="flex flex-col items-center justify-center py-6">
+              <Loader2 className="h-10 w-10 animate-spin" />
+            </div>
+          )}
+          {connectionState === "success" && (
+            <div className="space-y-4 text-center">
+              {connectionImage && (
+                <img
+                  src={`data:image/png;base64,${connectionImage}`}
+                  alt="QR Code"
+                  className="mx-auto"
+                />
+              )}
+              {connectionMessage && (
+                <p className="text-sm text-muted-foreground">
+                  {connectionMessage}
+                </p>
+              )}
+            </div>
+          )}
+          {connectionState === "error" && (
+            <p className="text-sm text-center text-destructive">
+              {connectionError ?? "Não foi possível conectar a instância."}
+            </p>
+          )}
+          {(connectionState === "success" || connectionState === "error") && (
+            <p className="text-xs text-muted-foreground text-center pt-4">
+              Esta janela será fechada em {countdown}s.
+            </p>
           )}
         </DialogContent>
       </Dialog>
