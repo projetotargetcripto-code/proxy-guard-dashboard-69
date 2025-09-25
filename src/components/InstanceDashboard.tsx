@@ -65,6 +65,8 @@ export function InstanceDashboard() {
   const [isAddingService, setIsAddingService] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [activeTab, setActiveTab] = useState("instances");
+  const [testAllTrigger, setTestAllTrigger] = useState(0);
+  const [isTestingAllConnections, setIsTestingAllConnections] = useState(false);
 
   const handleAddInstance = async (instanceData: CreateInstanceData, proxyData?: CreateProxyData) => {
     try {
@@ -332,6 +334,8 @@ export function InstanceDashboard() {
     (instance.proxies?.name || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const apiInstancesCount = instances.filter((instance) => instance.sent_to_api).length;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -559,12 +563,24 @@ export function InstanceDashboard() {
           <TabsContent value="api-instances" className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold">Instâncias na API</h2>
+              <Button
+                onClick={() => setTestAllTrigger((prev) => prev + 1)}
+                disabled={
+                  isTestingAllConnections ||
+                  loading ||
+                  apiInstancesCount === 0
+                }
+              >
+                {isTestingAllConnections ? "Testando..." : "Testar todas as instâncias"}
+              </Button>
             </div>
             <ApiInstancesGrid
               instances={instances}
               loading={loading}
               onRemoveFromApi={handleRemoveFromApi}
               onUpdateStatus={handleStatusUpdate}
+              triggerTestAll={testAllTrigger}
+              onTestingAllChange={setIsTestingAllConnections}
             />
           </TabsContent>
 
