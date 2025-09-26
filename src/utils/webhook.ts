@@ -11,7 +11,7 @@ export async function sendToApi(
   data: WebhookData
 ): Promise<{ success: boolean; error?: string }> {
   const formBody = new URLSearchParams(
-    data as Record<string, string>
+    data as unknown as Record<string, string>
   ).toString();
 
   try {

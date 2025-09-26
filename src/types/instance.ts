@@ -9,12 +9,27 @@ export interface Proxy {
   updated_at: string;
 }
 
+export interface Client {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Service {
   id: string;
   name: string;
   description?: string;
+  client_id?: string;
   created_at: string;
   updated_at: string;
+  clients?: {
+    id: string;
+    name: string;
+  };
 }
 
 export type InstanceStatus = 'Repouso' | 'Aquecendo' | 'Disparando' | 'Banida';
@@ -48,9 +63,17 @@ export interface CreateInstanceData {
   status: InstanceStatus;
 }
 
+export interface CreateClientData {
+  name: string;
+  email?: string;
+  phone?: string;
+  description?: string;
+}
+
 export interface CreateServiceData {
   name: string;
   description?: string;
+  client_id?: string;
 }
 
 export interface CreateProxyData {

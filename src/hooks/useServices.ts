@@ -12,7 +12,13 @@ export function useServices() {
     try {
       const { data, error } = await supabase
         .from('services')
-        .select('*')
+        .select(`
+          *,
+          clients (
+            id,
+            name
+          )
+        `)
         .order('name', { ascending: true });
 
       if (error) throw error;

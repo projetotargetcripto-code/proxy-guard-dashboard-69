@@ -75,8 +75,9 @@ export function ServiceTable({
             {/* Header */}
             <div className="grid grid-cols-12 gap-4 p-4 bg-muted/20 border-b border-border/50 text-sm font-medium text-muted-foreground">
               <div className="col-span-3">Nome</div>
-              <div className="col-span-5">Descrição</div>
-              <div className="col-span-2 text-center">Instâncias</div>
+              <div className="col-span-3">Cliente</div>
+              <div className="col-span-3">Descrição</div>
+              <div className="col-span-1 text-center">Instâncias</div>
               <div className="col-span-1">Criado</div>
               <div className="col-span-1">Ações</div>
             </div>
@@ -96,13 +97,19 @@ export function ServiceTable({
                       </p>
                     </div>
 
-                    <div className="col-span-5">
+                    <div className="col-span-3">
+                      <p className="text-muted-foreground truncate" title={service.clients?.name}>
+                        {service.clients?.name || 'Sem cliente'}
+                      </p>
+                    </div>
+
+                    <div className="col-span-3">
                       <p className="text-muted-foreground truncate" title={service.description}>
                         {service.description || 'Sem descrição'}
                       </p>
                     </div>
 
-                    <div className="col-span-2 text-center">
+                    <div className="col-span-1 text-center">
                       <p className="text-sm font-semibold text-foreground">
                         {`${count} instância${count === 1 ? '' : 's'}`}
                       </p>

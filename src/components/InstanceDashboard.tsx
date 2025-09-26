@@ -547,6 +547,7 @@ export function InstanceDashboard() {
                 <CardContent>
                   <ServiceForm
                     service={editingService}
+                    clients={[]}
                     onSubmit={(data) => {
                       if (editingService) {
                         handleEditService(editingService, data);
