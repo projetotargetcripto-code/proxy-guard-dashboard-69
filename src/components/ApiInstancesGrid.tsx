@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Instance, InstanceStatus } from "@/types/instance";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, XCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +30,14 @@ interface ApiInstancesGridProps {
 type TestConnectionResultState = {
   status: "idle" | "loading" | "positive" | "negative" | "error";
   message: string;
+};
+
+type ConnectionPresentation = {
+  cardClass: string;
+  containerClass: string;
+  label: string;
+  note?: string;
+  icon: ReactNode;
 };
 
 const WEBHOOK_BASE = "https://webhook.targetfuturos.com/webhook";
@@ -624,6 +632,50 @@ export function ApiInstancesGrid({
     waitForWebhookResponse,
   ]);
 
+  const getConnectionPresentation = useCallback(
+    (status?: TestConnectionResultState["status"]): ConnectionPresentation | null => {
+      switch (status) {
+        case "positive":
+          return {
+            cardClass: "ring-1 ring-emerald-500/40 shadow-[0_0_18px_rgba(16,185,129,0.35)]",
+            containerClass:
+              "border-emerald-500/60 bg-emerald-500/10 text-emerald-100 shadow-[0_0_14px_rgba(16,185,129,0.35)]",
+            label: "Conexão estável",
+            icon: <CheckCircle2 className="h-5 w-5 text-emerald-300" />,
+          };
+        case "negative":
+          return {
+            cardClass:
+              "ring-2 ring-red-500/70 shadow-[0_0_30px_rgba(239,68,68,0.45)]",
+            containerClass:
+              "border-red-500/70 bg-red-500/15 text-red-100 shadow-[0_0_22px_rgba(239,68,68,0.55)] motion-safe:animate-pulse",
+            label: "ATENÇÃO: Conta desconectada",
+            note: "Reconecte a conta para retomar as operações.",
+            icon: <XCircle className="h-6 w-6 text-red-200" />,
+          };
+        case "error":
+          return {
+            cardClass: "ring-1 ring-amber-500/40 shadow-[0_0_18px_rgba(245,158,11,0.35)]",
+            containerClass:
+              "border-amber-500/60 bg-amber-500/10 text-amber-100 shadow-[0_0_16px_rgba(245,158,11,0.35)]",
+            label: "Falha ao testar conexão",
+            icon: <AlertTriangle className="h-5 w-5 text-amber-300" />,
+          };
+        case "loading":
+          return {
+            cardClass: "ring-1 ring-slate-500/40",
+            containerClass:
+              "border-slate-400/60 bg-slate-800/70 text-slate-100",
+            label: "Testando conexão",
+            icon: <Loader2 className="h-5 w-5 animate-spin" />,
+          };
+        default:
+          return null;
+      }
+    },
+    [],
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -642,73 +694,81 @@ export function ApiInstancesGrid({
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {apiInstances.map((apiInstance) => (
-        <Card
-          key={apiInstance.id}
-          className={`${statusStyles[apiInstance.status]} rounded-lg shadow-sm transition-all duration-300 hover:shadow-lg hover:scale-105 hover:-translate-y-1 animate-fade-in`}
-        >
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              {apiInstance.instance_name}
-              <Badge variant="secondary">{apiInstance.status}</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div>Telefone: {apiInstance.phone_number || ""}</div>
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={() => handleConnect(apiInstance)}>
-                Conectar
-              </Button>
-              <Button
-                onClick={() => handleTestConnection(apiInstance)}
-                disabled={
-                  isTestingAll ||
-                  testConnectionResults[apiInstance.id]?.status === "loading"
-                }
-              >
-                {testConnectionResults[apiInstance.id]?.status === "loading" ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Testando...
-                  </span>
-                ) : (
-                  "Testar Conexão"
-                )}
-              </Button>
-              <Button
-                onClick={() => {
-                  setSelectedInstance(apiInstance);
-                  setSelectedStatus(apiInstance.status);
-                  setStatusModalOpen(true);
-                }}
-              >
-                Status
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => onRemoveFromApi(apiInstance.id)}
-              >
-                Remover
-              </Button>
-            </div>
-            {testConnectionResults[apiInstance.id] && (
-              <div
-                className={`text-sm font-medium ${
-                  testConnectionResults[apiInstance.id]?.status === "positive"
-                    ? "text-emerald-300"
-                    : testConnectionResults[apiInstance.id]?.status === "negative"
-                      ? "text-red-300"
-                      : testConnectionResults[apiInstance.id]?.status === "error"
-                        ? "text-yellow-300"
-                        : "text-muted-foreground"
-                }`}
-              >
-                {testConnectionResults[apiInstance.id]?.message}
+      {apiInstances.map((apiInstance) => {
+        const connectionResult = testConnectionResults[apiInstance.id];
+        const presentation = getConnectionPresentation(connectionResult?.status);
+
+        return (
+          <Card
+            key={apiInstance.id}
+            className={`${statusStyles[apiInstance.status]} rounded-lg shadow-sm transition-all duration-300 hover:shadow-lg hover:scale-105 hover:-translate-y-1 animate-fade-in ${presentation?.cardClass ?? ""}`}
+          >
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                {apiInstance.instance_name}
+                <Badge variant="secondary">{apiInstance.status}</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div>Telefone: {apiInstance.phone_number || ""}</div>
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => handleConnect(apiInstance)}>
+                  Conectar
+                </Button>
+                <Button
+                  onClick={() => handleTestConnection(apiInstance)}
+                  disabled={
+                    isTestingAll ||
+                    testConnectionResults[apiInstance.id]?.status === "loading"
+                  }
+                >
+                  {testConnectionResults[apiInstance.id]?.status === "loading" ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Testando...
+                    </span>
+                  ) : (
+                    "Testar Conexão"
+                  )}
+                </Button>
+                <Button
+                  onClick={() => {
+                    setSelectedInstance(apiInstance);
+                    setSelectedStatus(apiInstance.status);
+                    setStatusModalOpen(true);
+                  }}
+                >
+                  Status
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => onRemoveFromApi(apiInstance.id)}
+                >
+                  Remover
+                </Button>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      ))}
+              {connectionResult && presentation && (
+                <div
+                  className={`flex items-start gap-3 rounded-md border px-3 py-2 text-sm leading-tight ${presentation.containerClass}`}
+                >
+                  <span className="mt-0.5 flex-shrink-0">{presentation.icon}</span>
+                  <div className="space-y-1">
+                    <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] opacity-80">
+                      {presentation.label}
+                    </p>
+                    <p className="text-sm font-semibold">{connectionResult.message}</p>
+                    {presentation.note && (
+                      <p className="text-xs font-medium opacity-90">
+                        {presentation.note}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })}
       <Dialog open={statusModalOpen} onOpenChange={setStatusModalOpen}>
         <DialogContent>
           <DialogHeader>
