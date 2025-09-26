@@ -720,42 +720,52 @@ export function ApiInstancesGrid({
               <div>
                 Serviço: {apiInstance.services?.name ?? "Não atribuído"}
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={() => handleConnect(apiInstance)}>
-                  Conectar
-                </Button>
-                <Button
-                  onClick={() => handleTestConnection(apiInstance)}
-                  disabled={
-                    isTestingAll ||
-                    testConnectionResults[apiInstance.id]?.status === "loading"
-                  }
-                >
-                  {testConnectionResults[apiInstance.id]?.status === "loading" ? (
-                    <span className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Testando...
-                    </span>
-                  ) : (
-                    "Testar Conexão"
-                  )}
-                </Button>
-                <Button
-                  onClick={() => {
-                    setSelectedInstance(apiInstance);
-                    setSelectedStatus(apiInstance.status);
-                    setSelectedServiceId(apiInstance.service_id ?? "none");
-                    setStatusModalOpen(true);
-                  }}
-                >
-                  Editar
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => onRemoveFromApi(apiInstance.id)}
-                >
-                  Remover
-                </Button>
+              <div>
+                Cliente: {apiInstance.services?.clients?.name ?? "Não atribuído"}
+              </div>
+              <div>
+                Inbox ID: {apiInstance.inbox_id || "Não atribuído"}
+              </div>
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={() => handleConnect(apiInstance)}>
+                    Conectar
+                  </Button>
+                  <Button
+                    onClick={() => handleTestConnection(apiInstance)}
+                    disabled={
+                      isTestingAll ||
+                      testConnectionResults[apiInstance.id]?.status === "loading"
+                    }
+                  >
+                    {testConnectionResults[apiInstance.id]?.status === "loading" ? (
+                      <span className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Testando...
+                      </span>
+                    ) : (
+                      "Testar Conexão"
+                    )}
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    onClick={() => {
+                      setSelectedInstance(apiInstance);
+                      setSelectedStatus(apiInstance.status);
+                      setSelectedServiceId(apiInstance.service_id ?? "none");
+                      setStatusModalOpen(true);
+                    }}
+                  >
+                    Editar
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => onRemoveFromApi(apiInstance.id)}
+                  >
+                    Remover
+                  </Button>
+                </div>
               </div>
               {connectionResult && presentation && (
                 <div

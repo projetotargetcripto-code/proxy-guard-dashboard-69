@@ -17,7 +17,8 @@ export function ClientForm({ client, onSubmit, onCancel }: ClientFormProps) {
     name: '',
     email: '',
     phone: '',
-    description: ''
+    description: '',
+    account_id: undefined
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -27,7 +28,8 @@ export function ClientForm({ client, onSubmit, onCancel }: ClientFormProps) {
         name: client.name,
         email: client.email || '',
         phone: client.phone || '',
-        description: client.description || ''
+        description: client.description || '',
+        account_id: client.account_id || undefined
       });
     }
   }, [client]);
@@ -36,7 +38,14 @@ export function ClientForm({ client, onSubmit, onCancel }: ClientFormProps) {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Handle numeric inputs
+    if (name === 'account_id') {
+      const numValue = value === '' ? undefined : parseInt(value, 10);
+      setFormData(prev => ({ ...prev, [name]: numValue }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
     
     // Clear error for this field when user starts typing
     if (errors[name]) {
@@ -67,7 +76,8 @@ export function ClientForm({ client, onSubmit, onCancel }: ClientFormProps) {
         name: formData.name.trim(),
         email: formData.email?.trim() || undefined,
         phone: formData.phone?.trim() || undefined,
-        description: formData.description?.trim() || undefined
+        description: formData.description?.trim() || undefined,
+        account_id: formData.account_id || undefined
       };
       onSubmit(cleanData);
     }
@@ -121,6 +131,18 @@ export function ClientForm({ client, onSubmit, onCancel }: ClientFormProps) {
               value={formData.phone}
               onChange={handleInputChange}
               placeholder="(00) 00000-0000"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="account_id">ID da Conta</Label>
+            <Input
+              id="account_id"
+              name="account_id"
+              type="number"
+              value={formData.account_id || ''}
+              onChange={handleInputChange}
+              placeholder="ID numérico da conta"
             />
           </div>
 

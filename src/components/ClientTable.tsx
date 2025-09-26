@@ -77,14 +77,15 @@ export function ClientTable({
         <div className="overflow-x-auto">
           <div className="min-w-full">
             {/* Header */}
-            <div className="grid grid-cols-14 gap-4 p-4 bg-muted/20 border-b border-border/50 text-sm font-medium text-muted-foreground">
+            <div className="grid grid-cols-16 gap-4 p-4 bg-muted/20 border-b border-border/50 text-sm font-medium text-muted-foreground">
               <div className="col-span-3">Nome</div>
               <div className="col-span-2">Email</div>
               <div className="col-span-2">Telefone</div>
+              <div className="col-span-1">ID Conta</div>
               <div className="col-span-3">Descrição</div>
               <div className="col-span-1 text-center">Serviços</div>
               <div className="col-span-2 text-center">Instâncias</div>
-              <div className="col-span-1">Ações</div>
+              <div className="col-span-2">Ações</div>
             </div>
 
             {/* Rows */}
@@ -95,7 +96,7 @@ export function ClientTable({
               return (
                 <div
                   key={client.id}
-                  className="grid grid-cols-14 gap-4 p-4 border-b border-border/20 hover:bg-muted/10 transition-colors"
+                  className="grid grid-cols-16 gap-4 p-4 border-b border-border/20 hover:bg-muted/10 transition-colors"
                 >
                   <div className="col-span-3">
                     <p className="font-medium text-foreground truncate" title={client.name}>
@@ -129,6 +130,12 @@ export function ClientTable({
                     )}
                   </div>
 
+                  <div className="col-span-1">
+                    <p className="text-muted-foreground text-sm">
+                      {client.account_id || '-'}
+                    </p>
+                  </div>
+
                   <div className="col-span-3">
                     <p className="text-muted-foreground text-sm truncate" title={client.description}>
                       {client.description || 'Sem descrição'}
@@ -147,7 +154,7 @@ export function ClientTable({
                     </p>
                   </div>
 
-                  <div className="col-span-1">
+                  <div className="col-span-2">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">

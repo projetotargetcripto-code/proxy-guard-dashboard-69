@@ -15,6 +15,7 @@ export interface Client {
   email?: string;
   phone?: string;
   description?: string;
+  account_id?: number;
   created_at: string;
   updated_at: string;
 }
@@ -46,6 +47,7 @@ export interface Instance {
   status: InstanceStatus;
   sent_to_api?: boolean;
   api_sent_at?: string | null;
+  inbox_id?: string | null;
   created_at: string;
   updated_at: string;
   proxies?: Proxy;
@@ -68,6 +70,7 @@ export interface CreateClientData {
   email?: string;
   phone?: string;
   description?: string;
+  account_id?: number;
 }
 
 export interface CreateServiceData {

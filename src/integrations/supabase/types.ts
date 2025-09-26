@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       clients: {
         Row: {
+          account_id: number | null
           created_at: string
           description: string | null
           email: string | null
@@ -25,6 +26,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_id?: number | null
           created_at?: string
           description?: string | null
           email?: string | null
@@ -34,6 +36,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_id?: number | null
           created_at?: string
           description?: string | null
           email?: string | null
@@ -49,6 +52,7 @@ export type Database = {
           api_sent_at: string | null
           created_at: string
           id: string
+          inbox_id: string | null
           instance_name: string
           instance_number: number
           phone_number: string | null
@@ -71,6 +75,7 @@ export type Database = {
           api_sent_at?: string | null
           created_at?: string
           id?: string
+          inbox_id?: string | null
           instance_name: string
           instance_number: number
           phone_number?: string | null
@@ -93,6 +98,7 @@ export type Database = {
           api_sent_at?: string | null
           created_at?: string
           id?: string
+          inbox_id?: string | null
           instance_name?: string
           instance_number?: number
           phone_number?: string | null

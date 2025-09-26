@@ -30,7 +30,11 @@ export function useInstances() {
             name,
             description,
             created_at,
-            updated_at
+            updated_at,
+            clients (
+              id,
+              name
+            )
           )
         `)
         .order('instance_number', { ascending: true });
@@ -71,7 +75,11 @@ export function useInstances() {
             name,
             description,
             created_at,
-            updated_at
+            updated_at,
+            clients (
+              id,
+              name
+            )
           )
         `)
         .single();
@@ -119,7 +127,11 @@ export function useInstances() {
             name,
             description,
             created_at,
-            updated_at
+            updated_at,
+            clients (
+              id,
+              name
+            )
           )
         `)
         .single();
