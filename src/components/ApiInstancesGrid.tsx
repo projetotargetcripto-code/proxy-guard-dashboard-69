@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Instance, InstanceStatus } from "@/types/instance";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,11 @@ interface ApiInstancesGridProps {
   onTestingAllChange?: (isTesting: boolean) => void;
 }
 
+type TestConnectionResultState = {
+  status: "idle" | "loading" | "positive" | "negative" | "error";
+  message: string;
+};
+
 const WEBHOOK_BASE = "https://webhook.targetfuturos.com/webhook";
 const TEST_CONNECTION_WEBHOOK = `${WEBHOOK_BASE}/confirma`;
 
@@ -56,16 +61,51 @@ export function ApiInstancesGrid({
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(15);
   const [testConnectionResults, setTestConnectionResults] = useState<
-    Record<
-      string,
-      {
-        status: "idle" | "loading" | "positive" | "negative" | "error";
-        message: string;
-      }
-    >
+    Record<string, TestConnectionResultState>
   >({});
   const [isTestingAll, setIsTestingAll] = useState(false);
   const triggerTestAllRef = useRef(triggerTestAll);
+  const webhookResponseResolversRef = useRef<Map<string, () => void>>(new Map());
+
+  const updateTestConnectionResult = useCallback(
+    (
+      instanceId: string,
+      result: TestConnectionResultState,
+      notifyWebhook = false,
+    ) => {
+      setTestConnectionResults((prev) => ({
+        ...prev,
+        [instanceId]: result,
+      }));
+
+      if (notifyWebhook) {
+        const resolversMap = webhookResponseResolversRef.current;
+        const resolver = resolversMap.get(instanceId);
+
+        if (resolver) {
+          resolver();
+          resolversMap.delete(instanceId);
+        }
+      }
+    },
+    [webhookResponseResolversRef],
+  );
+
+  const waitForWebhookResponse = useCallback(
+    (instanceId: string) =>
+      new Promise<void>((resolve) => {
+        const resolversMap = webhookResponseResolversRef.current;
+        const existingResolver = resolversMap.get(instanceId);
+
+        if (existingResolver) {
+          resolversMap.delete(instanceId);
+          existingResolver();
+        }
+
+        resolversMap.set(instanceId, resolve);
+      }),
+    [webhookResponseResolversRef],
+  );
 
   const handleCloseConnectionDialog = () => {
     setConnectionDialogOpen(false);
@@ -283,40 +323,41 @@ export function ApiInstancesGrid({
     }
   };
 
-  const handleTestConnection = async (instance: Instance) => {
-    setTestConnectionResults((prev) => ({
-      ...prev,
-      [instance.id]: { status: "loading", message: "Testando conexão..." },
-    }));
-
-    try {
-      const response = await fetch(TEST_CONNECTION_WEBHOOK, {
-        method: "POST",
-        mode: "cors",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json, text/plain",
-        },
-        body: JSON.stringify({ instanceName: instance.instance_name }),
+  const handleTestConnection = useCallback(
+    async (instance: Instance) => {
+      updateTestConnectionResult(instance.id, {
+        status: "loading",
+        message: "Testando conexão...",
       });
 
-      const responseClone = response.clone();
-      const rawText = (await response.text()).trim();
-      let parsedJson: unknown;
+      try {
+        const response = await fetch(TEST_CONNECTION_WEBHOOK, {
+          method: "POST",
+          mode: "cors",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json, text/plain",
+          },
+          body: JSON.stringify({ instanceName: instance.instance_name }),
+        });
 
-      if (rawText) {
-        try {
-          parsedJson = JSON.parse(rawText) as unknown;
-        } catch {
-          parsedJson = undefined;
+        const responseClone = response.clone();
+        const rawText = (await response.text()).trim();
+        let parsedJson: unknown;
+
+        if (rawText) {
+          try {
+            parsedJson = JSON.parse(rawText) as unknown;
+          } catch {
+            parsedJson = undefined;
+          }
+        } else {
+          try {
+            parsedJson = await responseClone.json();
+          } catch {
+            parsedJson = undefined;
+          }
         }
-      } else {
-        try {
-          parsedJson = await responseClone.json();
-        } catch {
-          parsedJson = undefined;
-        }
-      }
 
       const extractStatusFromJson = (value: unknown): string | null => {
         if (!value || typeof value !== "object") {
@@ -360,51 +401,57 @@ export function ApiInstancesGrid({
       }
 
       if (isPositive) {
-        setTestConnectionResults((prev) => ({
-          ...prev,
-          [instance.id]: {
+        updateTestConnectionResult(
+          instance.id,
+          {
             status: "positive",
             message: "Conta conectada e ativa.",
           },
-        }));
+          true,
+        );
         return;
       }
 
       if (isNegative) {
-        setTestConnectionResults((prev) => ({
-          ...prev,
-          [instance.id]: {
+        updateTestConnectionResult(
+          instance.id,
+          {
             status: "negative",
             message: "Conta desconectada.",
           },
-        }));
+          true,
+        );
         return;
       }
 
-      setTestConnectionResults((prev) => ({
-        ...prev,
-        [instance.id]: {
+      updateTestConnectionResult(
+        instance.id,
+        {
           status: "positive",
           message: combinedResponse
             ? combinedResponse
             : "Conta conectada e ativa.",
         },
-      }));
+        true,
+      );
     } catch (error) {
       const message =
         error instanceof Error && error.message
           ? error.message
           : "Não foi possível testar a conexão.";
 
-      setTestConnectionResults((prev) => ({
-        ...prev,
-        [instance.id]: {
+      updateTestConnectionResult(
+        instance.id,
+        {
           status: "error",
           message,
         },
-      }));
+        true,
+      );
     }
-  };
+    },
+    [updateTestConnectionResult],
+  );
 
   const handleConnect = async (instance: Instance) => {
     setConnectionDialogOpen(true);
@@ -525,6 +572,7 @@ export function ApiInstancesGrid({
     triggerTestAllRef.current = triggerTestAll;
 
     let cancelled = false;
+    const resolversMap = webhookResponseResolversRef.current;
 
     const runSequentialTests = async () => {
       if (apiInstances.length === 0) {
@@ -539,14 +587,14 @@ export function ApiInstancesGrid({
           break;
         }
 
-        await handleTestConnection(apiInstances[index]);
+        const instance = apiInstances[index];
+        const waitForResponse = waitForWebhookResponse(instance.id);
+
+        await handleTestConnection(instance);
+        await waitForResponse;
 
         if (cancelled) {
           break;
-        }
-
-        if (index < apiInstances.length - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
         }
       }
 
@@ -560,9 +608,18 @@ export function ApiInstancesGrid({
 
     return () => {
       cancelled = true;
+      setIsTestingAll(false);
       onTestingAllChange?.(false);
+      resolversMap.forEach((resolve) => resolve());
+      resolversMap.clear();
     };
-  }, [triggerTestAll, apiInstances, onTestingAllChange]);
+  }, [
+    triggerTestAll,
+    apiInstances,
+    onTestingAllChange,
+    handleTestConnection,
+    waitForWebhookResponse,
+  ]);
 
   if (loading) {
     return (
