@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Instance, InstanceStatus } from "@/types/instance";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,6 @@ interface ApiInstancesGridProps {
   loading?: boolean;
   onRemoveFromApi: (id: string) => Promise<void> | void;
   onUpdateStatus: (id: string, status: InstanceStatus) => Promise<void> | void;
-  triggerTestAll?: number;
   onTestingAllChange?: (isTesting: boolean) => void;
 }
 
@@ -41,7 +40,6 @@ export function ApiInstancesGrid({
   loading,
   onRemoveFromApi,
   onUpdateStatus,
-  triggerTestAll,
   onTestingAllChange,
 }: ApiInstancesGridProps) {
   const [statusModalOpen, setStatusModalOpen] = useState(false);
@@ -64,7 +62,6 @@ export function ApiInstancesGrid({
     Record<string, TestConnectionResultState>
   >({});
   const [isTestingAll, setIsTestingAll] = useState(false);
-  const triggerTestAllRef = useRef(triggerTestAll);
   const webhookResponseResolversRef = useRef<Map<string, () => void>>(new Map());
 
   const updateTestConnectionResult = useCallback(
@@ -156,9 +153,13 @@ export function ApiInstancesGrid({
     }
   };
 
-  const apiInstances = instances
-    .filter((inst) => inst.sent_to_api)
-    .sort((a, b) => a.instance_number - b.instance_number);
+  const apiInstances = useMemo(
+    () =>
+      instances
+        .filter((inst) => inst.sent_to_api)
+        .sort((a, b) => a.instance_number - b.instance_number),
+    [instances],
+  );
 
   const statusStyles: Record<InstanceStatus, string> = {
     Repouso:
@@ -561,60 +562,62 @@ export function ApiInstancesGrid({
   };
 
   useEffect(() => {
-    if (triggerTestAll === undefined) {
-      return;
+    if (apiInstances.length === 0) {
+      return undefined;
     }
-
-    if (triggerTestAllRef.current === triggerTestAll) {
-      return;
-    }
-
-    triggerTestAllRef.current = triggerTestAll;
 
     let cancelled = false;
+    let isRunning = false;
     const resolversMap = webhookResponseResolversRef.current;
+    const intervalMs = 30 * 60 * 1000;
 
     const runSequentialTests = async () => {
-      if (apiInstances.length === 0) {
+      if (cancelled || isRunning || apiInstances.length === 0) {
         return;
       }
 
+      isRunning = true;
       setIsTestingAll(true);
       onTestingAllChange?.(true);
 
-      for (let index = 0; index < apiInstances.length; index += 1) {
-        if (cancelled) {
-          break;
+      try {
+        for (let index = 0; index < apiInstances.length; index += 1) {
+          if (cancelled) {
+            break;
+          }
+
+          const instance = apiInstances[index];
+          const waitForResponse = waitForWebhookResponse(instance.id);
+
+          await handleTestConnection(instance);
+          await waitForResponse;
+
+          if (cancelled) {
+            break;
+          }
         }
-
-        const instance = apiInstances[index];
-        const waitForResponse = waitForWebhookResponse(instance.id);
-
-        await handleTestConnection(instance);
-        await waitForResponse;
-
-        if (cancelled) {
-          break;
+      } finally {
+        if (!cancelled) {
+          setIsTestingAll(false);
+          onTestingAllChange?.(false);
         }
-      }
-
-      if (!cancelled) {
-        setIsTestingAll(false);
-        onTestingAllChange?.(false);
+        isRunning = false;
       }
     };
 
     runSequentialTests();
 
+    const intervalId = window.setInterval(runSequentialTests, intervalMs);
+
     return () => {
       cancelled = true;
+      window.clearInterval(intervalId);
       setIsTestingAll(false);
       onTestingAllChange?.(false);
       resolversMap.forEach((resolve) => resolve());
       resolversMap.clear();
     };
   }, [
-    triggerTestAll,
     apiInstances,
     onTestingAllChange,
     handleTestConnection,
