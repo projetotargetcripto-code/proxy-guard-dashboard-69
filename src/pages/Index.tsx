@@ -13,12 +13,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Settings, Users, Loader2, LogOut } from "lucide-react";
 import { Service, CreateServiceData, Client, CreateClientData } from "@/types/instance";
+import { useInstances } from "@/hooks/useInstances"; // Add useInstances import
 
 const Index = () => {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const { services, loading: servicesLoading, createService, updateService, deleteService } = useServices();
   const { clients, loading: clientsLoading, createClient, updateClient, deleteClient } = useClients();
+  const { instances } = useInstances(); // Add instances hook
   const [isAddingService, setIsAddingService] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [isAddingClient, setIsAddingClient] = useState(false);
@@ -81,6 +83,33 @@ const Index = () => {
       console.error('Error deleting client:', error);
     }
   };
+
+  // Calculate service instance counts
+  const serviceInstanceCounts = instances.reduce((acc, instance) => {
+    if (instance.service_id) {
+      acc[instance.service_id] = (acc[instance.service_id] || 0) + 1;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Calculate client service counts
+  const clientServiceCounts = services.reduce((acc, service) => {
+    if (service.client_id) {
+      acc[service.client_id] = (acc[service.client_id] || 0) + 1;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Calculate client instance counts (sum of instances for all services of that client)
+  const clientInstanceCounts = instances.reduce((acc, instance) => {
+    if (instance.service_id) {
+      const service = services.find(s => s.id === instance.service_id);
+      if (service && service.client_id) {
+        acc[service.client_id] = (acc[service.client_id] || 0) + 1;
+      }
+    }
+    return acc;
+  }, {} as Record<string, number>);
 
   if (loading) {
     return (
@@ -155,12 +184,8 @@ const Index = () => {
                 clients={clients}
                 onEdit={setEditingClient}
                 onDelete={handleDeleteClient}
-                clientServiceCounts={services.reduce((acc, service) => {
-                  if (service.client_id) {
-                    acc[service.client_id] = (acc[service.client_id] || 0) + 1;
-                  }
-                  return acc;
-                }, {} as Record<string, number>)}
+                clientServiceCounts={clientServiceCounts}
+                clientInstanceCounts={clientInstanceCounts}
               />
             )}
           </TabsContent>
@@ -207,7 +232,7 @@ const Index = () => {
                 services={services}
                 onEdit={setEditingService}
                 onDelete={handleDeleteService}
-                serviceInstanceCounts={{}}
+                serviceInstanceCounts={serviceInstanceCounts}
               />
             )}
           </TabsContent>

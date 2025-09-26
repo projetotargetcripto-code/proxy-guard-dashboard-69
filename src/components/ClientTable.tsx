@@ -34,6 +34,7 @@ interface ClientTableProps {
   onEdit: (client: Client) => void;
   onDelete: (clientId: string) => void;
   clientServiceCounts?: Record<string, number>;
+  clientInstanceCounts?: Record<string, number>;
 }
 
 export function ClientTable({
@@ -41,6 +42,7 @@ export function ClientTable({
   onEdit,
   onDelete,
   clientServiceCounts,
+  clientInstanceCounts,
 }: ClientTableProps) {
   if (clients.length === 0) {
     return (
@@ -75,23 +77,25 @@ export function ClientTable({
         <div className="overflow-x-auto">
           <div className="min-w-full">
             {/* Header */}
-            <div className="grid grid-cols-12 gap-4 p-4 bg-muted/20 border-b border-border/50 text-sm font-medium text-muted-foreground">
+            <div className="grid grid-cols-14 gap-4 p-4 bg-muted/20 border-b border-border/50 text-sm font-medium text-muted-foreground">
               <div className="col-span-3">Nome</div>
               <div className="col-span-2">Email</div>
               <div className="col-span-2">Telefone</div>
               <div className="col-span-3">Descrição</div>
               <div className="col-span-1 text-center">Serviços</div>
+              <div className="col-span-2 text-center">Instâncias</div>
               <div className="col-span-1">Ações</div>
             </div>
 
             {/* Rows */}
             {clients.map((client) => {
               const serviceCount = clientServiceCounts?.[client.id] ?? 0;
+              const instanceCount = clientInstanceCounts?.[client.id] ?? 0;
 
               return (
                 <div
                   key={client.id}
-                  className="grid grid-cols-12 gap-4 p-4 border-b border-border/20 hover:bg-muted/10 transition-colors"
+                  className="grid grid-cols-14 gap-4 p-4 border-b border-border/20 hover:bg-muted/10 transition-colors"
                 >
                   <div className="col-span-3">
                     <p className="font-medium text-foreground truncate" title={client.name}>
@@ -134,6 +138,12 @@ export function ClientTable({
                   <div className="col-span-1 text-center">
                     <p className="text-sm font-semibold text-foreground">
                       {`${serviceCount} serviço${serviceCount === 1 ? '' : 's'}`}
+                    </p>
+                  </div>
+
+                  <div className="col-span-2 text-center">
+                    <p className="text-sm font-semibold text-primary">
+                      {`${instanceCount} instância${instanceCount === 1 ? '' : 's'}`}
                     </p>
                   </div>
 
