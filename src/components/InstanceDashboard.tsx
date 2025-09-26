@@ -393,9 +393,8 @@ export function InstanceDashboard() {
 
         {/* Main Content */}
         <Tabs defaultValue="instances" className="w-full" onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="instances">Instâncias</TabsTrigger>
-            <TabsTrigger value="services">Serviços</TabsTrigger>
             <TabsTrigger value="api-instances">Instâncias na API</TabsTrigger>
             <TabsTrigger value="stats-costs">Estatísticas/Custos</TabsTrigger>
           </TabsList>
@@ -517,60 +516,6 @@ export function InstanceDashboard() {
             )}
           </TabsContent>
 
-          <TabsContent value="services">
-            {/* Services Actions */}
-            <Card className="bg-card/50 backdrop-blur border-border/50 mb-6">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-primary">
-                    Gerenciar Serviços
-                  </h3>
-                  <Button
-                    onClick={() => setIsAddingService(true)}
-                    className="bg-gradient-golden hover:shadow-golden"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Adicionar Serviço
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Services Content */}
-            {isAddingService || editingService ? (
-              <Card className="bg-card/80 backdrop-blur border-border/50">
-                <CardHeader>
-                  <CardTitle className="text-primary">
-                    {editingService ? "Editar Serviço" : "Novo Serviço"}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ServiceForm
-                    service={editingService}
-                    clients={[]}
-                    onSubmit={(data) => {
-                      if (editingService) {
-                        handleEditService(editingService, data);
-                      } else {
-                        handleAddService(data);
-                      }
-                    }}
-                    onCancel={() => {
-                      setIsAddingService(false);
-                      setEditingService(null);
-                    }}
-                  />
-                </CardContent>
-              </Card>
-            ) : (
-              <ServiceTable
-                services={services}
-                onEdit={setEditingService}
-                onDelete={handleDeleteService}
-                serviceInstanceCounts={serviceInstanceCounts}
-              />
-            )}
-          </TabsContent>
 
           <TabsContent value="api-instances" className="space-y-4">
             <div className="flex justify-between items-center">
