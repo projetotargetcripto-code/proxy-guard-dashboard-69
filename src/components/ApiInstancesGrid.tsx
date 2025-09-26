@@ -1,5 +1,5 @@
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Instance, InstanceStatus } from "@/types/instance";
+import { Instance, InstanceStatus, Service } from "@/types/instance";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,11 @@ interface ApiInstancesGridProps {
   instances: Instance[];
   loading?: boolean;
   onRemoveFromApi: (id: string) => Promise<void> | void;
-  onUpdateStatus: (id: string, status: InstanceStatus) => Promise<void> | void;
+  onUpdateInstance: (
+    id: string,
+    data: { status: InstanceStatus; service_id: string | null },
+  ) => Promise<void> | void;
+  services: Service[];
   onTestingAllChange?: (isTesting: boolean) => void;
 }
 
@@ -47,12 +51,14 @@ export function ApiInstancesGrid({
   instances,
   loading,
   onRemoveFromApi,
-  onUpdateStatus,
+  onUpdateInstance,
+  services,
   onTestingAllChange,
 }: ApiInstancesGridProps) {
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState<Instance | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<InstanceStatus>("Repouso");
+  const [selectedServiceId, setSelectedServiceId] = useState<string>("none");
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
   const [connectionState, setConnectionState] = useState<
     "idle" | "loading" | "success" | "error"
@@ -738,10 +744,11 @@ export function ApiInstancesGrid({
                   onClick={() => {
                     setSelectedInstance(apiInstance);
                     setSelectedStatus(apiInstance.status);
+                    setSelectedServiceId(apiInstance.service_id ?? "none");
                     setStatusModalOpen(true);
                   }}
                 >
-                  Status
+                  Editar
                 </Button>
                 <Button
                   variant="destructive"
@@ -772,25 +779,59 @@ export function ApiInstancesGrid({
           </Card>
         );
       })}
-      <Dialog open={statusModalOpen} onOpenChange={setStatusModalOpen}>
+      <Dialog
+        open={statusModalOpen}
+        onOpenChange={(open) => {
+          setStatusModalOpen(open);
+          if (!open) {
+            setSelectedInstance(null);
+            setSelectedStatus("Repouso");
+            setSelectedServiceId("none");
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Alterar Status</DialogTitle>
+            <DialogTitle>Editar instância na API</DialogTitle>
             <DialogDescription>
-              Selecione o novo status da conta
+              Atualize o status e o serviço associados à conta selecionada.
             </DialogDescription>
           </DialogHeader>
-          <Select value={selectedStatus} onValueChange={(v) => setSelectedStatus(v as InstanceStatus)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Repouso">Repouso</SelectItem>
-              <SelectItem value="Aquecendo">Aquecendo</SelectItem>
-              <SelectItem value="Disparando">Disparando</SelectItem>
-              <SelectItem value="Banida">Banida</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <span className="text-sm font-medium text-foreground">Status</span>
+              <Select
+                value={selectedStatus}
+                onValueChange={(v) => setSelectedStatus(v as InstanceStatus)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Repouso">Repouso</SelectItem>
+                  <SelectItem value="Aquecendo">Aquecendo</SelectItem>
+                  <SelectItem value="Disparando">Disparando</SelectItem>
+                  <SelectItem value="Banida">Banida</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <span className="text-sm font-medium text-foreground">Serviço</span>
+              <Select value={selectedServiceId} onValueChange={setSelectedServiceId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um serviço" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum serviço</SelectItem>
+                  {services.map((service) => (
+                    <SelectItem key={service.id} value={service.id}>
+                      {service.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <div className="flex justify-end space-x-2 pt-4">
             <Button variant="outline" onClick={() => setStatusModalOpen(false)}>
               Cancelar
@@ -798,7 +839,10 @@ export function ApiInstancesGrid({
             <Button
               onClick={() => {
                 if (selectedInstance) {
-                  onUpdateStatus(selectedInstance.id, selectedStatus);
+                  onUpdateInstance(selectedInstance.id, {
+                    status: selectedStatus,
+                    service_id: selectedServiceId === "none" ? null : selectedServiceId,
+                  });
                 }
                 setStatusModalOpen(false);
               }}

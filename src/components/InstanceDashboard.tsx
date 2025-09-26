@@ -130,11 +130,14 @@ export function InstanceDashboard() {
     }
   };
 
-  const handleStatusUpdate = async (instanceId: string, status: InstanceStatus) => {
+  const handleApiInstanceUpdate = async (
+    instanceId: string,
+    data: { status: InstanceStatus; service_id: string | null },
+  ) => {
     try {
-      await updateInstance(instanceId, { status });
+      await updateInstance(instanceId, data);
     } catch (error) {
-      console.error("Error updating status:", error);
+      console.error("Error updating API instance:", error);
     }
   };
 
@@ -576,7 +579,8 @@ export function InstanceDashboard() {
               instances={instances}
               loading={loading}
               onRemoveFromApi={handleRemoveFromApi}
-              onUpdateStatus={handleStatusUpdate}
+              onUpdateInstance={handleApiInstanceUpdate}
+              services={services}
             />
           </TabsContent>
 
