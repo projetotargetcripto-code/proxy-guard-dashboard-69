@@ -711,6 +711,9 @@ export function ApiInstancesGrid({
             </CardHeader>
             <CardContent className="space-y-2">
               <div>Telefone: {apiInstance.phone_number || ""}</div>
+              <div>
+                Serviço: {apiInstance.services?.name ?? "Não atribuído"}
+              </div>
               <div className="flex flex-wrap gap-2">
                 <Button onClick={() => handleConnect(apiInstance)}>
                   Conectar
