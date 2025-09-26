@@ -29,6 +29,8 @@ interface ApiInstancesGridProps {
   ) => Promise<void> | void;
   services: Service[];
   onTestingAllChange?: (isTesting: boolean) => void;
+  showRemoveButton?: boolean;
+  allowStatusEdit?: boolean;
 }
 
 type TestConnectionResultState = {
@@ -54,6 +56,8 @@ export function ApiInstancesGrid({
   onUpdateInstance,
   services,
   onTestingAllChange,
+  showRemoveButton = true,
+  allowStatusEdit = true,
 }: ApiInstancesGridProps) {
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState<Instance | null>(null);
@@ -759,12 +763,14 @@ export function ApiInstancesGrid({
                   >
                     Editar
                   </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={() => onRemoveFromApi(apiInstance.id)}
-                  >
-                    Remover
-                  </Button>
+                  {showRemoveButton && (
+                    <Button
+                      variant="destructive"
+                      onClick={() => onRemoveFromApi(apiInstance.id)}
+                    >
+                      Remover
+                    </Button>
+                  )}
                 </div>
               </div>
               {connectionResult && presentation && (
@@ -802,29 +808,35 @@ export function ApiInstancesGrid({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editar instância na API</DialogTitle>
+            <DialogTitle>
+              {allowStatusEdit ? "Editar instância na API" : "Editar serviço da instância"}
+            </DialogTitle>
             <DialogDescription>
-              Atualize o status e o serviço associados à conta selecionada.
+              {allowStatusEdit
+                ? "Atualize o status e o serviço associados à conta selecionada."
+                : "Atualize o serviço associado à conta selecionada."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <span className="text-sm font-medium text-foreground">Status</span>
-              <Select
-                value={selectedStatus}
-                onValueChange={(v) => setSelectedStatus(v as InstanceStatus)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Repouso">Repouso</SelectItem>
-                  <SelectItem value="Aquecendo">Aquecendo</SelectItem>
-                  <SelectItem value="Disparando">Disparando</SelectItem>
-                  <SelectItem value="Banida">Banida</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {allowStatusEdit && (
+              <div className="space-y-2">
+                <span className="text-sm font-medium text-foreground">Status</span>
+                <Select
+                  value={selectedStatus}
+                  onValueChange={(v) => setSelectedStatus(v as InstanceStatus)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Repouso">Repouso</SelectItem>
+                    <SelectItem value="Aquecendo">Aquecendo</SelectItem>
+                    <SelectItem value="Disparando">Disparando</SelectItem>
+                    <SelectItem value="Banida">Banida</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
               <span className="text-sm font-medium text-foreground">Serviço</span>
               <Select value={selectedServiceId} onValueChange={setSelectedServiceId}>
@@ -849,8 +861,12 @@ export function ApiInstancesGrid({
             <Button
               onClick={() => {
                 if (selectedInstance) {
+                  const nextStatus = allowStatusEdit
+                    ? selectedStatus
+                    : selectedInstance.status;
+
                   onUpdateInstance(selectedInstance.id, {
-                    status: selectedStatus,
+                    status: nextStatus,
                     service_id: selectedServiceId === "none" ? null : selectedServiceId,
                   });
                 }
