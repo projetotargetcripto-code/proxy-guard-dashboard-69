@@ -20,6 +20,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/zapguardapp" element={<ZapGuardApp />} />
+          <Route path="/zapguardapp/:accountId" element={<ZapGuardApp />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

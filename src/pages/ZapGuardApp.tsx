@@ -1,35 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
+import { useParams } from "react-router-dom";
 import { ApiInstancesGrid } from "@/components/ApiInstancesGrid";
 import { useInstances } from "@/hooks/useInstances";
 import { useServices } from "@/hooks/useServices";
 import { useClients } from "@/hooks/useClients";
 import { InstanceStatus } from "@/types/instance";
 
-const CHATWOOT_FETCH_KEY = "chatwoot-dashboard-app:fetch-info";
-const CHATWOOT_EVENT_KEY = "appContext";
-const CHATWOOT_TIMEOUT_MS = 5000;
-
-const parseEventData = (data: unknown) => {
-  if (!data) {
-    return null;
-  }
-
-  if (typeof data === "string") {
-    try {
-      return JSON.parse(data) as Record<string, unknown>;
-    } catch {
-      return null;
-    }
-  }
-
-  if (typeof data === "object") {
-    return data as Record<string, unknown>;
-  }
-
-  return null;
-};
-
 const ZapGuardApp = () => {
+  const { accountId: accountIdParam } = useParams<{ accountId?: string }>();
   const {
     instances,
     loading: instancesLoading,
@@ -38,90 +16,19 @@ const ZapGuardApp = () => {
   const { services, loading: servicesLoading } = useServices();
   const { clients, loading: clientsLoading } = useClients();
 
-  const [accountId, setAccountId] = useState<number | null>(null);
-  const [contextError, setContextError] = useState<string | null>(null);
-  const [clientError, setClientError] = useState<string | null>(null);
-  const [contextReceived, setContextReceived] = useState(false);
-
-  const messageReceivedRef = useRef(false);
-  const timeoutRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
+  const accountId = useMemo(() => {
+    if (!accountIdParam) {
+      return null;
     }
 
-    const handleMessage = (event: MessageEvent) => {
-      const payload = parseEventData(event.data);
+    const parsed = Number(accountIdParam);
 
-      if (!payload || payload.event !== CHATWOOT_EVENT_KEY) {
-        return;
-      }
-
-      messageReceivedRef.current = true;
-      setContextReceived(true);
-
-      const conversation =
-        (payload.data as { conversation?: { account_id?: unknown } } | undefined)
-          ?.conversation;
-
-      const receivedAccountId = conversation?.account_id;
-
-      if (typeof receivedAccountId !== "number") {
-        setContextError(
-          "Não foi possível identificar o account_id do Chatwoot.",
-        );
-        setAccountId(null);
-        return;
-      }
-
-      setContextError(null);
-      setAccountId(receivedAccountId);
-    };
-
-    window.addEventListener("message", handleMessage);
-
-    window.parent?.postMessage(CHATWOOT_FETCH_KEY, "*");
-
-    timeoutRef.current = window.setTimeout(() => {
-      if (!messageReceivedRef.current) {
-        setContextError("Nenhuma informação recebida do Chatwoot.");
-      }
-    }, CHATWOOT_TIMEOUT_MS);
-
-    return () => {
-      window.removeEventListener("message", handleMessage);
-      if (timeoutRef.current) {
-        window.clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (accountId == null) {
-      setClientError(null);
-      return;
+    if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
+      return null;
     }
 
-    if (clientsLoading) {
-      return;
-    }
-
-    const client = clients.find((currentClient) => {
-      if (typeof currentClient.account_id !== "number") {
-        return false;
-      }
-
-      return currentClient.account_id === accountId;
-    });
-
-    if (!client) {
-      setClientError("Cliente não encontrado para o account_id informado.");
-      return;
-    }
-
-    setClientError(null);
-  }, [accountId, clients, clientsLoading]);
+    return parsed;
+  }, [accountIdParam]);
 
   const targetClient = useMemo(() => {
     if (accountId == null) {
@@ -129,7 +36,8 @@ const ZapGuardApp = () => {
     }
 
     return clients.find(
-      (client) => typeof client.account_id === "number" && client.account_id === accountId,
+      (client) =>
+        typeof client.account_id === "number" && client.account_id === accountId,
     );
   }, [clients, accountId]);
 
@@ -186,8 +94,23 @@ const ZapGuardApp = () => {
     }
   };
 
-  const errorMessage = contextError ?? clientError;
   const isLoadingData = instancesLoading || servicesLoading || clientsLoading;
+
+  const errorMessage = useMemo(() => {
+    if (!accountIdParam) {
+      return "Nenhum account_id informado na URL.";
+    }
+
+    if (accountId == null) {
+      return "O account_id informado na URL é inválido.";
+    }
+
+    if (!clientsLoading && !targetClient) {
+      return "Cliente não encontrado para o account_id informado.";
+    }
+
+    return null;
+  }, [accountIdParam, accountId, clientsLoading, targetClient]);
 
   if (errorMessage) {
     return (
@@ -200,26 +123,16 @@ const ZapGuardApp = () => {
     );
   }
 
-  if (!contextReceived) {
-    return (
-      <div className="min-h-screen bg-gradient-dark flex items-center justify-center p-6">
-        <div className="text-center text-muted-foreground">
-          Aguardando informações do Chatwoot...
-        </div>
-      </div>
-    );
-  }
-
-  if (!targetClient) {
-    return null;
-  }
-
   if (isLoadingData) {
     return (
       <div className="min-h-screen bg-gradient-dark flex items-center justify-center p-6">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
+  }
+
+  if (!targetClient) {
+    return null;
   }
 
   if (clientInstances.length === 0) {
@@ -244,6 +157,9 @@ const ZapGuardApp = () => {
           </h1>
           <p className="text-muted-foreground">
             Cliente: <span className="text-foreground font-semibold">{targetClient.name}</span>
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Account ID: <span className="text-foreground font-semibold">{accountId}</span>
           </p>
         </div>
         <div className="rounded-xl border border-border/40 bg-card/60 backdrop-blur p-6 shadow-lg">
