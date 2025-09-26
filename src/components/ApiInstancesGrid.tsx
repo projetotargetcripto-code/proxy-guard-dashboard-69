@@ -725,9 +725,6 @@ export function ApiInstancesGrid({
                 Serviço: {apiInstance.services?.name ?? "Não atribuído"}
               </div>
               <div>
-                Cliente: {apiInstance.services?.clients?.name ?? "Não atribuído"}
-              </div>
-              <div>
                 Inbox ID: {apiInstance.inbox_id || "Não atribuído"}
               </div>
               <div className="space-y-2">
