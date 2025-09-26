@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -326,6 +326,17 @@ export function InstanceDashboard() {
     }
   };
 
+  const serviceInstanceCounts = useMemo(
+    () =>
+      instances.reduce<Record<string, number>>((acc, instance) => {
+        if (instance.service_id) {
+          acc[instance.service_id] = (acc[instance.service_id] ?? 0) + 1;
+        }
+        return acc;
+      }, {}),
+    [instances],
+  );
+
   const filteredInstances = instances.filter(instance =>
     instance.instance_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     instance.instance_number.toString().includes(searchTerm) ||
@@ -552,6 +563,7 @@ export function InstanceDashboard() {
                 services={services}
                 onEdit={setEditingService}
                 onDelete={handleDeleteService}
+                serviceInstanceCounts={serviceInstanceCounts}
               />
             )}
           </TabsContent>
