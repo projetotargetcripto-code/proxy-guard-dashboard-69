@@ -648,7 +648,7 @@ export function ApiInstancesGrid({
             cardClass:
               "ring-2 ring-red-500/70 shadow-[0_0_30px_rgba(239,68,68,0.45)]",
             containerClass:
-              "border-red-500/70 bg-red-500/15 text-red-100 shadow-[0_0_22px_rgba(239,68,68,0.55)] motion-safe:animate-pulse",
+              "border-red-500 bg-red-600/30 text-red-50 shadow-[0_0_22px_rgba(239,68,68,0.55)] motion-safe:animate-pulse",
             label: "ATENÇÃO: Conta desconectada",
             note: "Reconecte a conta para retomar as operações.",
             icon: <XCircle className="h-6 w-6 text-red-200" />,
