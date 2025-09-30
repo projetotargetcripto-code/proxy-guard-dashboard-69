@@ -277,11 +277,9 @@ export function ApiInstancesGrid({
     instance: Instance,
   ): Promise<TriggerWebhookResult> => {
     try {
-      const phoneNumber = formatPhoneNumberForWebhook(instance.phone_number);
-
       const body = new URLSearchParams({
         instanceName: instance.instance_name,
-        phoneNumber,
+        phoneNumber: instance.phone_number || "",
       }).toString();
 
       const response = await fetch(`${WEBHOOK_BASE}/${action}`, {
