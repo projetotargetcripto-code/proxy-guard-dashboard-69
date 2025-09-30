@@ -49,6 +49,30 @@ type ConnectionPresentation = {
 const WEBHOOK_BASE = "https://webhook.targetfuturos.com/webhook";
 const TEST_CONNECTION_WEBHOOK = `${WEBHOOK_BASE}/confirma`;
 
+const formatPhoneNumberForWebhook = (
+  phoneNumber?: string | null,
+): string => {
+  if (!phoneNumber) {
+    return "";
+  }
+
+  const digitsOnly = phoneNumber.replace(/\D/g, "");
+
+  if (!digitsOnly) {
+    return "";
+  }
+
+  const trimmedLeadingZeros = digitsOnly.replace(/^0+/, "");
+
+  if (!trimmedLeadingZeros) {
+    return "";
+  }
+
+  return trimmedLeadingZeros.startsWith("55")
+    ? trimmedLeadingZeros
+    : `55${trimmedLeadingZeros}`;
+};
+
 export function ApiInstancesGrid({
   instances,
   loading,
@@ -253,8 +277,11 @@ export function ApiInstancesGrid({
     instance: Instance,
   ): Promise<TriggerWebhookResult> => {
     try {
+      const phoneNumber = formatPhoneNumberForWebhook(instance.phone_number);
+
       const body = new URLSearchParams({
         instanceName: instance.instance_name,
+        phoneNumber,
       }).toString();
 
       const response = await fetch(`${WEBHOOK_BASE}/${action}`, {
