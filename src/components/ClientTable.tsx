@@ -77,15 +77,15 @@ export function ClientTable({
         <div className="overflow-x-auto">
           <div className="min-w-full">
             {/* Header */}
-            <div className="grid grid-cols-16 gap-4 p-4 bg-muted/20 border-b border-border/50 text-sm font-medium text-muted-foreground">
-              <div className="col-span-3">Nome</div>
-              <div className="col-span-2">Email</div>
-              <div className="col-span-2">Telefone</div>
-              <div className="col-span-1">ID Conta</div>
-              <div className="col-span-3">Descrição</div>
-              <div className="col-span-1 text-center">Serviços</div>
-              <div className="col-span-2 text-center">Instâncias</div>
-              <div className="col-span-2">Ações</div>
+            <div className="grid grid-cols-[2fr_1.5fr_1.5fr_0.8fr_2fr_0.8fr_1fr_0.8fr] gap-4 p-4 bg-muted/20 border-b border-border/50 text-sm font-medium text-muted-foreground">
+              <div>Nome</div>
+              <div>Email</div>
+              <div>Telefone</div>
+              <div>ID Conta</div>
+              <div>Descrição</div>
+              <div className="text-center">Serviços</div>
+              <div className="text-center">Instâncias</div>
+              <div>Ações</div>
             </div>
 
             {/* Rows */}
@@ -96,18 +96,18 @@ export function ClientTable({
               return (
                 <div
                   key={client.id}
-                  className="grid grid-cols-16 gap-4 p-4 border-b border-border/20 hover:bg-muted/10 transition-colors"
+                  className="grid grid-cols-[2fr_1.5fr_1.5fr_0.8fr_2fr_0.8fr_1fr_0.8fr] gap-4 p-4 border-b border-border/20 hover:bg-muted/10 transition-colors"
                 >
-                  <div className="col-span-3">
+                  <div>
                     <p className="font-medium text-foreground truncate" title={client.name}>
                       {client.name}
                     </p>
                   </div>
 
-                  <div className="col-span-2">
+                  <div>
                     {client.email ? (
                       <div className="flex items-center gap-2 text-muted-foreground">
-                        <Mail className="h-3 w-3" />
+                        <Mail className="h-3 w-3 flex-shrink-0" />
                         <span className="text-sm truncate" title={client.email}>
                           {client.email}
                         </span>
@@ -117,10 +117,10 @@ export function ClientTable({
                     )}
                   </div>
 
-                  <div className="col-span-2">
+                  <div>
                     {client.phone ? (
                       <div className="flex items-center gap-2 text-muted-foreground">
-                        <Phone className="h-3 w-3" />
+                        <Phone className="h-3 w-3 flex-shrink-0" />
                         <span className="text-sm truncate" title={client.phone}>
                           {client.phone}
                         </span>
@@ -130,31 +130,31 @@ export function ClientTable({
                     )}
                   </div>
 
-                  <div className="col-span-1">
+                  <div>
                     <p className="text-muted-foreground text-sm">
                       {client.account_id || '-'}
                     </p>
                   </div>
 
-                  <div className="col-span-3">
+                  <div>
                     <p className="text-muted-foreground text-sm truncate" title={client.description}>
                       {client.description || 'Sem descrição'}
                     </p>
                   </div>
 
-                  <div className="col-span-1 text-center">
+                  <div className="text-center">
                     <p className="text-sm font-semibold text-foreground">
-                      {`${serviceCount} serviço${serviceCount === 1 ? '' : 's'}`}
+                      {serviceCount}
                     </p>
                   </div>
 
-                  <div className="col-span-2 text-center">
+                  <div className="text-center">
                     <p className="text-sm font-semibold text-primary">
-                      {`${instanceCount} instância${instanceCount === 1 ? '' : 's'}`}
+                      {instanceCount}
                     </p>
                   </div>
 
-                  <div className="col-span-2">
+                  <div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
