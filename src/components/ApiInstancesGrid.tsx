@@ -88,6 +88,9 @@ export function ApiInstancesGrid({
   const [selectedStatus, setSelectedStatus] = useState<InstanceStatus>("Repouso");
   const [selectedServiceId, setSelectedServiceId] = useState<string>("none");
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
+  const [connectionDialogAction, setConnectionDialogAction] = useState<
+    "connect" | "disconnect"
+  >("connect");
   const [connectionState, setConnectionState] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
@@ -277,10 +280,15 @@ export function ApiInstancesGrid({
     instance: Instance,
   ): Promise<TriggerWebhookResult> => {
     try {
-      const body = new URLSearchParams({
+      const params = new URLSearchParams({
         instanceName: instance.instance_name,
-        phoneNumber: instance.phone_number || "",
-      }).toString();
+      });
+
+      if (instance.phone_number) {
+        params.set("phoneNumber", instance.phone_number);
+      }
+
+      const body = params.toString();
 
       const response = await fetch(`${WEBHOOK_BASE}/${action}`, {
         method: "POST",
@@ -498,6 +506,7 @@ export function ApiInstancesGrid({
   );
 
   const handleConnect = async (instance: Instance) => {
+    setConnectionDialogAction("connect");
     setConnectionDialogOpen(true);
     setConnectionState("loading");
     setConnectionImage(null);
@@ -601,6 +610,66 @@ export function ApiInstancesGrid({
     }
 
     setConnectionMessage("Conexão realizada com sucesso.");
+    setConnectionState("success");
+  };
+
+  const handleDisconnect = async (instance: Instance) => {
+    setConnectionDialogAction("disconnect");
+    setConnectionDialogOpen(true);
+    setConnectionState("loading");
+    setConnectionImage(null);
+    setConnectionMessage(null);
+    setConnectionError(null);
+    setCountdown(15);
+
+    const result = await triggerWebhook("deleta", instance);
+
+    const responseData =
+      result.json ?? parseWebhookText(result.text ?? "") ?? undefined;
+
+    if (!result.ok) {
+      const errorMessage =
+        (responseData &&
+          typeof responseData === "object" &&
+          responseData !== null &&
+          "error" in responseData &&
+          typeof (responseData as { error?: unknown }).error === "string"
+          ? (responseData as { error: string }).error
+          : undefined) ||
+        result.errorMessage ||
+        result.text ||
+        "Erro ao desconectar instância.";
+
+      setConnectionError(errorMessage ?? "Erro ao desconectar instância.");
+      setConnectionState("error");
+      return;
+    }
+
+    if (responseData && typeof responseData === "object") {
+      if ("message" in responseData && typeof (responseData as { message: unknown }).message === "string") {
+        const message = (responseData as { message: string }).message.trim();
+        setConnectionMessage(message || "Instância desconectada com sucesso.");
+        setConnectionState("success");
+        return;
+      }
+
+      if ("raw" in responseData && typeof (responseData as { raw: unknown }).raw === "string") {
+        const rawMessage = (responseData as { raw: string }).raw.trim();
+        if (rawMessage) {
+          setConnectionMessage(rawMessage);
+          setConnectionState("success");
+          return;
+        }
+      }
+    }
+
+    if (typeof result.text === "string" && result.text.trim()) {
+      setConnectionMessage(result.text.trim());
+      setConnectionState("success");
+      return;
+    }
+
+    setConnectionMessage("Instância desconectada com sucesso.");
     setConnectionState("success");
   };
 
@@ -757,6 +826,9 @@ export function ApiInstancesGrid({
                   <Button onClick={() => handleConnect(apiInstance)}>
                     Conectar
                   </Button>
+                  <Button variant="secondary" onClick={() => handleDisconnect(apiInstance)}>
+                    Desconectar
+                  </Button>
                   <Button
                     onClick={() => handleTestConnection(apiInstance)}
                     disabled={
@@ -910,10 +982,16 @@ export function ApiInstancesGrid({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Conexão da instância</DialogTitle>
+            <DialogTitle>
+              {connectionDialogAction === "connect"
+                ? "Conexão da instância"
+                : "Desconexão da instância"}
+            </DialogTitle>
             <DialogDescription>
               {connectionState === "loading" || connectionState === "idle"
-                ? "Aguardando resposta do webhook..."
+                ? connectionDialogAction === "connect"
+                  ? "Aguardando resposta do webhook para conectar..."
+                  : "Aguardando resposta do webhook para desconectar..."
                 : connectionState === "success"
                   ? "Resposta recebida com sucesso."
                   : "O webhook retornou um erro."}
@@ -926,7 +1004,7 @@ export function ApiInstancesGrid({
           )}
           {connectionState === "success" && (
             <div className="space-y-4 text-center">
-              {connectionImage && (
+              {connectionDialogAction === "connect" && connectionImage && (
                 <img
                   src={`data:${connectionImage.mimeType};base64,${connectionImage.data}`}
                   alt="QR Code"
