@@ -132,7 +132,7 @@ export function InstanceDashboard() {
 
   const handleApiInstanceUpdate = async (
     instanceId: string,
-    data: { status: InstanceStatus; service_id: string | null },
+    data: { status: InstanceStatus; service_id: string | null; inbox_id: string | null },
   ) => {
     try {
       await updateInstance(instanceId, data);

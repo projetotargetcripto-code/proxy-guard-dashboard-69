@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -25,7 +26,7 @@ interface ApiInstancesGridProps {
   onRemoveFromApi: (id: string) => Promise<void> | void;
   onUpdateInstance: (
     id: string,
-    data: { status: InstanceStatus; service_id: string | null },
+    data: { status: InstanceStatus; service_id: string | null; inbox_id: string | null },
   ) => Promise<void> | void;
   services: Service[];
   onTestingAllChange?: (isTesting: boolean) => void;
@@ -87,6 +88,7 @@ export function ApiInstancesGrid({
   const [selectedInstance, setSelectedInstance] = useState<Instance | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<InstanceStatus>("Repouso");
   const [selectedServiceId, setSelectedServiceId] = useState<string>("none");
+  const [selectedInboxId, setSelectedInboxId] = useState<string>("");
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
   const [connectionDialogAction, setConnectionDialogAction] = useState<
     "connect" | "disconnect"
@@ -852,6 +854,7 @@ export function ApiInstancesGrid({
                       setSelectedInstance(apiInstance);
                       setSelectedStatus(apiInstance.status);
                       setSelectedServiceId(apiInstance.service_id ?? "none");
+                      setSelectedInboxId(apiInstance.inbox_id ?? "");
                       setStatusModalOpen(true);
                     }}
                   >
@@ -897,6 +900,7 @@ export function ApiInstancesGrid({
             setSelectedInstance(null);
             setSelectedStatus("Repouso");
             setSelectedServiceId("none");
+            setSelectedInboxId("");
           }
         }}
       >
@@ -907,8 +911,8 @@ export function ApiInstancesGrid({
             </DialogTitle>
             <DialogDescription>
               {allowStatusEdit
-                ? "Atualize o status e o serviço associados à conta selecionada."
-                : "Atualize o serviço associado à conta selecionada."}
+                ? "Atualize o status, o serviço e o Inbox ID associados à conta selecionada."
+                : "Atualize o serviço e o Inbox ID associados à conta selecionada."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -947,6 +951,14 @@ export function ApiInstancesGrid({
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <span className="text-sm font-medium text-foreground">Inbox ID</span>
+              <Input
+                value={selectedInboxId}
+                placeholder="Informe o Inbox ID"
+                onChange={(event) => setSelectedInboxId(event.target.value)}
+              />
+            </div>
           </div>
           <div className="flex justify-end space-x-2 pt-4">
             <Button variant="outline" onClick={() => setStatusModalOpen(false)}>
@@ -962,6 +974,7 @@ export function ApiInstancesGrid({
                   onUpdateInstance(selectedInstance.id, {
                     status: nextStatus,
                     service_id: selectedServiceId === "none" ? null : selectedServiceId,
+                    inbox_id: selectedInboxId.trim() === "" ? null : selectedInboxId.trim(),
                   });
                 }
                 setStatusModalOpen(false);
