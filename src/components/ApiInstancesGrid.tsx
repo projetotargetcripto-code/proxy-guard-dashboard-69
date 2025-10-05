@@ -803,15 +803,26 @@ export function ApiInstancesGrid({
       {apiInstances.map((apiInstance) => {
         const connectionResult = testConnectionResults[apiInstance.id];
         const presentation = getConnectionPresentation(connectionResult?.status);
+        const isBorrowed = !!apiInstance.borrowed_by_user_id;
+        const isExpired = apiInstance.borrowed_until && new Date(apiInstance.borrowed_until) < new Date();
 
         return (
           <Card
             key={apiInstance.id}
-            className={`${statusStyles[apiInstance.status]} rounded-lg shadow-sm transition-all duration-300 hover:shadow-lg hover:scale-105 hover:-translate-y-1 animate-fade-in ${presentation?.cardClass ?? ""}`}
+            className={`${statusStyles[apiInstance.status]} rounded-lg shadow-sm transition-all duration-300 hover:shadow-lg hover:scale-105 hover:-translate-y-1 animate-fade-in ${presentation?.cardClass ?? ""} ${
+              isBorrowed && !isExpired ? "ring-2 ring-purple-500/50 shadow-[0_0_25px_rgba(168,85,247,0.4)]" : ""
+            }`}
           >
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                {apiInstance.instance_name}
+              <CardTitle className="flex items-center justify-between flex-wrap gap-2">
+                <span className="flex items-center gap-2">
+                  {apiInstance.instance_name}
+                  {isBorrowed && !isExpired && (
+                    <Badge className="bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-bold shadow-md animate-pulse">
+                      ⚡ ZapGuard
+                    </Badge>
+                  )}
+                </span>
                 <Badge variant="secondary">{apiInstance.status}</Badge>
               </CardTitle>
             </CardHeader>
@@ -823,52 +834,83 @@ export function ApiInstancesGrid({
               <div>
                 Inbox ID: {apiInstance.inbox_id || "Não atribuído"}
               </div>
+              {isBorrowed && !isExpired && (
+                <div className="bg-purple-900/30 border border-purple-500/30 rounded-md p-2 text-xs text-purple-200">
+                  Emprestada até {new Date(apiInstance.borrowed_until!).toLocaleDateString('pt-BR')}
+                </div>
+              )}
               <div className="space-y-2">
-                <div className="flex flex-wrap gap-2">
-                  <Button onClick={() => handleConnect(apiInstance)}>
-                    Conectar
-                  </Button>
-                  <Button variant="secondary" onClick={() => handleDisconnect(apiInstance)}>
-                    Desconectar
-                  </Button>
-                  <Button
-                    onClick={() => handleTestConnection(apiInstance)}
-                    disabled={
-                      isTestingAll ||
-                      testConnectionResults[apiInstance.id]?.status === "loading"
-                    }
-                  >
-                    {testConnectionResults[apiInstance.id]?.status === "loading" ? (
-                      <span className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Testando...
-                      </span>
-                    ) : (
-                      "Testar Conexão"
-                    )}
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    onClick={() => {
-                      setSelectedInstance(apiInstance);
-                      setSelectedStatus(apiInstance.status);
-                      setSelectedServiceId(apiInstance.service_id ?? "none");
-                      setSelectedInboxId(apiInstance.inbox_id ?? "");
-                      setStatusModalOpen(true);
-                    }}
-                  >
-                    Editar
-                  </Button>
-                  {showRemoveButton && (
+                {!isBorrowed ? (
+                  <>
+                    <div className="flex flex-wrap gap-2">
+                      <Button onClick={() => handleConnect(apiInstance)}>
+                        Conectar
+                      </Button>
+                      <Button variant="secondary" onClick={() => handleDisconnect(apiInstance)}>
+                        Desconectar
+                      </Button>
+                      <Button
+                        onClick={() => handleTestConnection(apiInstance)}
+                        disabled={
+                          isTestingAll ||
+                          testConnectionResults[apiInstance.id]?.status === "loading"
+                        }
+                      >
+                        {testConnectionResults[apiInstance.id]?.status === "loading" ? (
+                          <span className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Testando...
+                          </span>
+                        ) : (
+                          "Testar Conexão"
+                        )}
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {allowStatusEdit && (
+                        <Button
+                          onClick={() => {
+                            setSelectedInstance(apiInstance);
+                            setSelectedStatus(apiInstance.status);
+                            setSelectedServiceId(apiInstance.service_id ?? "none");
+                            setSelectedInboxId(apiInstance.inbox_id ?? "");
+                            setStatusModalOpen(true);
+                          }}
+                        >
+                          Editar
+                        </Button>
+                      )}
+                      {showRemoveButton && (
+                        <Button
+                          variant="destructive"
+                          onClick={() => onRemoveFromApi(apiInstance.id)}
+                        >
+                          Remover
+                        </Button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-center">
                     <Button
-                      variant="destructive"
-                      onClick={() => onRemoveFromApi(apiInstance.id)}
+                      onClick={() => handleTestConnection(apiInstance)}
+                      disabled={
+                        isTestingAll ||
+                        testConnectionResults[apiInstance.id]?.status === "loading"
+                      }
+                      className="w-full"
                     >
-                      Remover
+                      {testConnectionResults[apiInstance.id]?.status === "loading" ? (
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Testando...
+                        </span>
+                      ) : (
+                        "Testar Conexão"
+                      )}
                     </Button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
               {connectionResult && presentation && (
                 <div

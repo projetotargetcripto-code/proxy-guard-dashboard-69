@@ -253,205 +253,242 @@ export function InstanceTable({
             </div>
 
             {/* Rows */}
-            {instances.map((instance) => (
-              <div
-                key={instance.id}
-                className={cn(
-                  "grid grid-cols-13 gap-4 p-4 border-b border-border/20 hover:bg-muted/10 transition-colors",
-                  instance.status === "Banida" && "bg-destructive/20 text-destructive"
-                )}
-              >
-                <div className="col-span-1 flex items-center">
-                  <Checkbox
-                    checked={selectedInstances.has(instance.id)}
-                    onCheckedChange={(checked) => toggleInstanceSelection(instance.id, checked === true)}
-                  />
-                </div>
-                <div className="col-span-1">
-                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                    {instance.instance_number}
-                  </Badge>
-                </div>
+            {instances.map((instance) => {
+              const isBorrowed = !!instance.borrowed_by_user_id;
+              const isExpired = instance.borrowed_until && new Date(instance.borrowed_until) < new Date();
+              
+              return (
+                <div
+                  key={instance.id}
+                  className={cn(
+                    "grid grid-cols-13 gap-4 p-4 border-b border-border/20 transition-colors relative",
+                    instance.status === "Banida" && "bg-destructive/20 text-destructive",
+                    isBorrowed && !isExpired && "bg-gradient-to-r from-purple-900/20 via-blue-900/20 to-purple-900/20 border-l-4 border-l-purple-500 shadow-lg shadow-purple-500/20 hover:shadow-purple-500/30",
+                    !isBorrowed && "hover:bg-muted/10"
+                  )}
+                >
+                  <div className="col-span-1 flex items-center">
+                    {!isBorrowed && (
+                      <Checkbox
+                        checked={selectedInstances.has(instance.id)}
+                        onCheckedChange={(checked) => toggleInstanceSelection(instance.id, checked === true)}
+                      />
+                    )}
+                  </div>
+                  <div className="col-span-1">
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                      {instance.instance_number}
+                    </Badge>
+                  </div>
 
-                <div className="col-span-2">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-foreground truncate" title={instance.instance_name}>
-                        {instance.instance_name}
+                  <div className="col-span-2">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-foreground truncate" title={instance.instance_name}>
+                          {instance.instance_name}
+                        </p>
+                        {instance.sent_to_api && (
+                          <Badge variant="secondary" className="text-xs">
+                            API
+                          </Badge>
+                        )}
+                        {isBorrowed && !isExpired && (
+                          <Badge className="bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-bold shadow-md animate-pulse">
+                            ⚡ ZapGuard
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {instance.phone_number && !isBorrowed && (
+                          <span className="font-bold">{`Tel: ${instance.phone_number}`}</span>
+                        )}
+                        {instance.phone_number && !isBorrowed && " • "}
+                        {isBorrowed && !isExpired && (
+                          <span className="font-bold text-purple-400">
+                            Emprestada até {new Date(instance.borrowed_until!).toLocaleDateString('pt-BR')}
+                          </span>
+                        )}
+                        {(!isBorrowed || isExpired) && `Criado: ${new Date(instance.created_at).toLocaleDateString('pt-BR')}`}
                       </p>
-                      {instance.sent_to_api && (
-                        <Badge variant="secondary" className="text-xs">
-                          API
+                    </div>
+                  </div>
+
+                  <div className="col-span-1">
+                    <Badge
+                      variant="outline"
+                      className="bg-accent/10 text-accent-foreground border-accent/20 text-xs truncate"
+                      title={instance.services?.name || 'Nenhum serviço'}
+                    >
+                      {instance.services?.name || 'N/A'}
+                    </Badge>
+                  </div>
+
+                  <div className="col-span-1">
+                    <Badge
+                      variant={
+                        instance.status === "Disparando" || instance.status === "Banida"
+                          ? "destructive"
+                          : instance.status === "Aquecendo"
+                            ? "default"
+                            : "secondary"
+                      }
+                      className="text-xs"
+                    >
+                      {instance.status}
+                    </Badge>
+                  </div>
+
+                  <div className="col-span-1">
+                    {!isBorrowed ? (
+                      <div className="space-y-1">
+                        <Badge variant={instance.pid1 !== '0000' ? 'default' : 'secondary'} className="text-xs">
+                          {instance.pid1}
                         </Badge>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {instance.phone_number && (
-                        <span className="font-bold">{`Tel: ${instance.phone_number}`}</span>
-                      )}
-                      {instance.phone_number && " • "}
-                      Criado: {new Date(instance.created_at).toLocaleDateString('pt-BR')}
-                    </p>
+                        <Badge variant={instance.pid2 !== '0000' ? 'default' : 'secondary'} className="text-xs">
+                          {instance.pid2}
+                        </Badge>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">Oculto</span>
+                    )}
                   </div>
-                </div>
 
-                <div className="col-span-1">
-                  <Badge
-                    variant="outline"
-                    className="bg-accent/10 text-accent-foreground border-accent/20 text-xs truncate"
-                    title={instance.services?.name || 'Nenhum serviço'}
-                  >
-                    {instance.services?.name || 'N/A'}
-                  </Badge>
-                </div>
-
-                <div className="col-span-1">
-                  <Badge
-                    variant={
-                      instance.status === "Disparando" || instance.status === "Banida"
-                        ? "destructive"
-                        : instance.status === "Aquecendo"
-                          ? "default"
-                          : "secondary"
-                    }
-                    className="text-xs"
-                  >
-                    {instance.status}
-                  </Badge>
-                </div>
-
-                <div className="col-span-1">
-                  <div className="space-y-1">
-                    <Badge variant={instance.pid1 !== '0000' ? 'default' : 'secondary'} className="text-xs">
-                      {instance.pid1}
-                    </Badge>
-                    <Badge variant={instance.pid2 !== '0000' ? 'default' : 'secondary'} className="text-xs">
-                      {instance.pid2}
-                    </Badge>
-                  </div>
-                </div>
-
-                <div className="col-span-3">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{instance.proxies?.name || 'N/A'}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-auto p-0 text-xs hover:text-primary"
-                        onClick={() => copyToClipboard(instance.proxies?.username || '', "Username")}
-                      >
-                        <Copy className="h-3 w-3 mr-1" />
-                        {instance.proxies?.username}
-                      </Button>
-                      <span>•</span>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-auto p-0"
-                          onClick={() => togglePasswordVisibility(instance.id)}
-                        >
-                          {visiblePasswords.has(instance.id) ? (
-                            <EyeOff className="h-3 w-3" />
-                          ) : (
-                            <Eye className="h-3 w-3" />
-                          )}
-                        </Button>
-                        {visiblePasswords.has(instance.id) ? (
+                  <div className="col-span-3">
+                    {!isBorrowed ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">{instance.proxies?.name || 'N/A'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Button
                             variant="ghost"
                             size="sm"
                             className="h-auto p-0 text-xs hover:text-primary"
-                            onClick={() => copyToClipboard(instance.proxies?.password || '', "Senha")}
+                            onClick={() => copyToClipboard(instance.proxies?.username || '', "Username")}
                           >
                             <Copy className="h-3 w-3 mr-1" />
-                            {instance.proxies?.password}
+                            {instance.proxies?.username}
                           </Button>
-                        ) : (
-                          <span className="text-xs">••••••••</span>
-                        )}
+                          <span>•</span>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-auto p-0"
+                              onClick={() => togglePasswordVisibility(instance.id)}
+                            >
+                              {visiblePasswords.has(instance.id) ? (
+                                <EyeOff className="h-3 w-3" />
+                              ) : (
+                                <Eye className="h-3 w-3" />
+                              )}
+                            </Button>
+                            {visiblePasswords.has(instance.id) ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-auto p-0 text-xs hover:text-primary"
+                                onClick={() => copyToClipboard(instance.proxies?.password || '', "Senha")}
+                              >
+                                <Copy className="h-3 w-3 mr-1" />
+                                {instance.proxies?.password}
+                              </Button>
+                            ) : (
+                              <span className="text-xs">••••••••</span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="text-xs text-muted-foreground italic">
+                        Credenciais ocultas
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="col-span-2">
+                    {!isBorrowed ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto p-0 text-sm text-muted-foreground hover:text-primary"
+                        onClick={() => copyToClipboard(`${instance.proxies?.ip}:${instance.proxies?.port}`, "Endereço do proxy")}
+                      >
+                        <Copy className="h-3 w-3 mr-1" />
+                        {instance.proxies?.ip}:{instance.proxies?.port}
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">Oculto</span>
+                    )}
+                  </div>
+
+                  <div className="col-span-1">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0" disabled={isBorrowed && !isExpired}>
+                          <span className="sr-only">Abrir menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                        <DropdownMenuItem
+                          onClick={() => copyToClipboard(instance.instance_name, "Nome da instância")}
+                        >
+                          <Copy className="mr-2 h-4 w-4" />
+                          Copiar nome
+                        </DropdownMenuItem>
+                        {!isBorrowed && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => openQuickEdit(instance)}>
+                              <Zap className="mr-2 h-4 w-4" />
+                              Edição rápida
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onEdit(instance)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleAddToApi(instance)}>
+                              <Send className="mr-2 h-4 w-4" />
+                              Adicionar à API
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <button className="w-full text-left flex items-center px-2 py-1.5 text-sm hover:bg-accent rounded-sm text-destructive">
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Excluir
+                                  </button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Tem certeza que deseja excluir a instância "{instance.instance_name}"?
+                                      Esta ação não pode ser desfeita.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => onDelete(instance.id)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Excluir
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
-
-                <div className="col-span-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-auto p-0 text-sm text-muted-foreground hover:text-primary"
-                    onClick={() => copyToClipboard(`${instance.proxies?.ip}:${instance.proxies?.port}`, "Endereço do proxy")}
-                  >
-                    <Copy className="h-3 w-3 mr-1" />
-                    {instance.proxies?.ip}:{instance.proxies?.port}
-                  </Button>
-                </div>
-
-                <div className="col-span-1">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Abrir menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                      <DropdownMenuItem
-                        onClick={() => copyToClipboard(instance.instance_name, "Nome da instância")}
-                      >
-                        <Copy className="mr-2 h-4 w-4" />
-                        Copiar nome
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => openQuickEdit(instance)}>
-                        <Zap className="mr-2 h-4 w-4" />
-                        Edição rápida
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onEdit(instance)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAddToApi(instance)}>
-                        <Send className="mr-2 h-4 w-4" />
-                        Adicionar à API
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <button className="w-full text-left flex items-center px-2 py-1.5 text-sm hover:bg-accent rounded-sm text-destructive">
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Excluir
-                            </button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tem certeza que deseja excluir a instância "{instance.instance_name}"?
-                                Esta ação não pode ser desfeita.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => onDelete(instance.id)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                Excluir
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </CardContent>
