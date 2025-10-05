@@ -13,31 +13,29 @@ export const useAuth = () => {
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        setLoading(false);
 
-        // Check if user is admin
+        // Check if user is admin (defer to avoid blocking)
         if (session?.user) {
-          await checkAdminStatus(session.user.id);
+          checkAdminStatus(session.user.id);
         } else {
           setIsAdmin(false);
         }
-        
-        setLoading(false);
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      setLoading(false);
 
       if (session?.user) {
-        await checkAdminStatus(session.user.id);
+        checkAdminStatus(session.user.id);
       }
-      
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
