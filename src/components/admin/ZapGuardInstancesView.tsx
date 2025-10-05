@@ -30,6 +30,7 @@ export const ZapGuardInstancesView = ({ users }: ZapGuardInstancesViewProps) => 
           services (*)
         `)
         .eq('managed_by_zapguard', true)
+        .eq('sent_to_api', true)
         .order('instance_number');
 
       if (error) throw error;
@@ -68,7 +69,7 @@ export const ZapGuardInstancesView = ({ users }: ZapGuardInstancesViewProps) => 
     <>
       <Card className="bg-card/80 backdrop-blur border-border/50">
         <CardHeader>
-          <CardTitle className="text-primary">Instâncias Gestão ZapGuard</CardTitle>
+          <CardTitle className="text-primary">Instâncias Gestão ZapGuard (Enviadas à API)</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border border-border/50">
