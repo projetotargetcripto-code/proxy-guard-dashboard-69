@@ -6,21 +6,25 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InstanceForm } from "./InstanceForm";
 import { InstanceTable } from "./InstanceTable";
+import { ServiceForm } from "./ServiceForm";
+import { ServiceTable } from "./ServiceTable";
 import { BulkImportForm } from "./BulkImportForm";
 import { Search, Download, Plus, FileDown, Upload } from "lucide-react";
 import { useInstances } from "@/hooks/useInstances";
 import { useProxies } from "@/hooks/useProxies";
 import { useServices } from "@/hooks/useServices";
+import { useClients } from "@/hooks/useClients";
 import {
   Instance,
   CreateInstanceData,
   CreateProxyData,
+  Service,
+  CreateServiceData,
   InstanceStatus,
 } from "@/types/instance";
 import { useToast } from "@/hooks/use-toast";
 import { downloadPpx } from "@/utils/ppx-generator";
 import { ApiInstancesGrid } from "./ApiInstancesGrid";
-import { StatsCosts } from "./StatsCosts";
 
 interface BulkImportInstance {
   instance_name: string;
@@ -43,13 +47,16 @@ export function ClientInstanceDashboard() {
     refetch,
   } = useInstances();
   const { createProxy } = useProxies();
-  const { services } = useServices();
+  const { services, createService, updateService, deleteService } = useServices();
+  const { clients } = useClients();
   const { toast } = useToast();
   
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddingInstance, setIsAddingInstance] = useState(false);
   const [editingInstance, setEditingInstance] = useState<Instance | null>(null);
   const [isBulkImporting, setIsBulkImporting] = useState(false);
+  const [isAddingService, setIsAddingService] = useState(false);
+  const [editingService, setEditingService] = useState<Service | null>(null);
   const [activeTab, setActiveTab] = useState("instances");
 
   const handleAddInstance = async (instanceData: CreateInstanceData, proxyData?: CreateProxyData) => {
@@ -149,6 +156,32 @@ export function ClientInstanceDashboard() {
       await bulkUpdateInstances(instanceIds, data);
     } catch (error) {
       console.error("Error bulk editing instances:", error);
+    }
+  };
+
+  const handleAddService = async (serviceData: CreateServiceData) => {
+    try {
+      await createService(serviceData);
+      setIsAddingService(false);
+    } catch (error) {
+      console.error("Error creating service:", error);
+    }
+  };
+
+  const handleEditService = async (service: Service, serviceData: CreateServiceData) => {
+    try {
+      await updateService(service.id, serviceData);
+      setEditingService(null);
+    } catch (error) {
+      console.error("Error updating service:", error);
+    }
+  };
+
+  const handleDeleteService = async (serviceId: string) => {
+    try {
+      await deleteService(serviceId);
+    } catch (error) {
+      console.error("Error deleting service:", error);
     }
   };
 
@@ -261,6 +294,17 @@ export function ClientInstanceDashboard() {
     }
   };
 
+  const serviceInstanceCounts = useMemo(
+    () =>
+      instances.reduce<Record<string, number>>((acc, instance) => {
+        if (instance.service_id) {
+          acc[instance.service_id] = (acc[instance.service_id] ?? 0) + 1;
+        }
+        return acc;
+      }, {}),
+    [instances],
+  );
+
   const filteredInstances = instances.filter(instance =>
     instance.instance_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     instance.instance_number.toString().includes(searchTerm) ||
@@ -300,7 +344,7 @@ export function ClientInstanceDashboard() {
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="instances">Instâncias</TabsTrigger>
           <TabsTrigger value="api-instances">Instâncias na API</TabsTrigger>
-          <TabsTrigger value="stats-costs">Estatísticas/Custos</TabsTrigger>
+          <TabsTrigger value="services">Serviços</TabsTrigger>
         </TabsList>
         
         <TabsContent value="instances">
@@ -415,8 +459,51 @@ export function ClientInstanceDashboard() {
           />
         </TabsContent>
 
-        <TabsContent value="stats-costs">
-          <StatsCosts instances={instances} />
+        <TabsContent value="services" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-primary">Gerenciar Serviços</h2>
+            <Button
+              onClick={() => setIsAddingService(true)}
+              className="bg-gradient-golden hover:shadow-golden"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Adicionar Serviço
+            </Button>
+          </div>
+
+          {isAddingService || editingService ? (
+            <Card className="bg-card/80 backdrop-blur border-border/50">
+              <CardHeader>
+                <CardTitle className="text-primary">
+                  {editingService ? "Editar Serviço" : "Novo Serviço"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ServiceForm
+                  service={editingService}
+                  clients={clients}
+                  onSubmit={(data) => {
+                    if (editingService) {
+                      handleEditService(editingService, data);
+                    } else {
+                      handleAddService(data);
+                    }
+                  }}
+                  onCancel={() => {
+                    setIsAddingService(false);
+                    setEditingService(null);
+                  }}
+                />
+              </CardContent>
+            </Card>
+          ) : (
+            <ServiceTable
+              services={services}
+              onEdit={setEditingService}
+              onDelete={handleDeleteService}
+              serviceInstanceCounts={serviceInstanceCounts}
+            />
+          )}
         </TabsContent>
       </Tabs>
     </div>
