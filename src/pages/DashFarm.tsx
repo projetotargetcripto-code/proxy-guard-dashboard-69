@@ -13,7 +13,7 @@ import { Service, CreateServiceData } from "@/types/instance";
 import { useInstances } from "@/hooks/useInstances";
 
 const DashFarm = () => {
-  const { user, loading, isAdmin, signOut } = useAuth();
+  const { user, loading, isAdmin, adminChecking, signOut } = useAuth();
   const navigate = useNavigate();
   const { services, loading: servicesLoading, createService, updateService, deleteService } = useServices();
   const { instances } = useInstances();
@@ -23,11 +23,11 @@ const DashFarm = () => {
   useEffect(() => {
     if (!loading && !user) {
       navigate('/auth');
-    } else if (!loading && user && !isAdmin) {
+    } else if (!loading && !adminChecking && user && !isAdmin) {
       // Redireciona usuários não-admin para a página inicial
       navigate('/');
     }
-  }, [user, loading, isAdmin, navigate]);
+  }, [user, loading, isAdmin, adminChecking, navigate]);
 
   const handleAddService = async (data: CreateServiceData) => {
     try {
@@ -63,7 +63,7 @@ const DashFarm = () => {
     return acc;
   }, {} as Record<string, number>);
 
-  if (loading) {
+  if (loading || adminChecking) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />

@@ -8,6 +8,7 @@ export const useAuth = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [adminChecking, setAdminChecking] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -23,6 +24,7 @@ export const useAuth = () => {
           checkAdminStatus(session.user.id);
         } else {
           setIsAdmin(false);
+          setAdminChecking(false);
         }
       }
     );
@@ -35,6 +37,8 @@ export const useAuth = () => {
 
       if (session?.user) {
         checkAdminStatus(session.user.id);
+      } else {
+        setAdminChecking(false);
       }
     });
 
@@ -43,6 +47,7 @@ export const useAuth = () => {
 
   const checkAdminStatus = async (userId: string) => {
     try {
+      setAdminChecking(true);
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
@@ -53,13 +58,16 @@ export const useAuth = () => {
       if (error) {
         console.error('Error checking admin status:', error);
         setIsAdmin(false);
+        setAdminChecking(false);
         return;
       }
 
       setIsAdmin(!!data);
+      setAdminChecking(false);
     } catch (error) {
       console.error('Error checking admin status:', error);
       setIsAdmin(false);
+      setAdminChecking(false);
     }
   };
 
@@ -83,6 +91,7 @@ export const useAuth = () => {
     session,
     loading,
     isAdmin,
+    adminChecking,
     signOut,
   };
 };
