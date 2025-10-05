@@ -51,16 +51,29 @@ export function useInstances() {
 
   const createInstance = async (instanceData: CreateInstanceData) => {
     try {
-      // Get user's account_id
+      // Get user's account_id and check if admin
+      const { data: { user } } = await supabase.auth.getUser();
+      
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('account_id')
-        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .eq('id', user?.id)
         .single();
 
       if (profileError) throw profileError;
       
-      const accountId = profileData?.account_id || 0;
+      // Check if user is admin
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user?.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+      
+      const isAdmin = !!roleData;
+      
+      // Admin always uses account_id 0, regular users use their account_id
+      const accountId = isAdmin ? 0 : (profileData?.account_id || 0);
       
       // Calculate next instance number for this account
       const accountInstances = instances.filter(i => 
@@ -80,6 +93,7 @@ export function useInstances() {
         pid1: '0000',
         pid2: '0000',
         service_id: null,
+        managed_by_zapguard: isAdmin,
       };
 
       const { data, error } = await supabase
