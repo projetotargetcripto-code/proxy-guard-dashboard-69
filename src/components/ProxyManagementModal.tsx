@@ -6,8 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { useProxies } from "@/hooks/useProxies";
 import { CreateProxyData } from "@/types/instance";
-import { Loader2, Pencil, Trash2, Plus, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, Pencil, Trash2, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProxyManagementModalProps {
   open: boolean;
@@ -87,24 +88,46 @@ export function ProxyManagementModal({ open, onOpenChange }: ProxyManagementModa
 
   const testProxy = async (proxyData: CreateProxyData): Promise<boolean> => {
     try {
-      const proxyUrl = `http://${proxyData.username}:${proxyData.password}@${proxyData.ip}:${proxyData.port}`;
-      
-      // Fazer uma requisição de teste usando o proxy
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos timeout
-      
-      const response = await fetch('https://api.ipify.org?format=json', {
-        signal: controller.signal,
+      const { data, error } = await supabase.functions.invoke('test-proxy', {
+        body: {
+          ip: proxyData.ip,
+          port: proxyData.port,
+          username: proxyData.username,
+          password: proxyData.password,
+        }
       });
-      
-      clearTimeout(timeoutId);
-      
-      if (response.ok) {
-        return true;
+
+      if (error) {
+        console.error('Error testing proxy:', error);
+        toast({
+          title: "Erro ao testar proxy",
+          description: error.message || "Não foi possível testar o proxy.",
+          variant: "destructive",
+        });
+        return false;
       }
-      return false;
+
+      if (data?.success) {
+        toast({
+          title: "Proxy funcionando",
+          description: `Conexão bem-sucedida. IP detectado: ${data.ip || 'N/A'}`,
+        });
+        return true;
+      } else {
+        toast({
+          title: "Proxy não funcional",
+          description: data?.error || "O proxy não respondeu corretamente.",
+          variant: "destructive",
+        });
+        return false;
+      }
     } catch (error) {
       console.error('Proxy test failed:', error);
+      toast({
+        title: "Erro ao testar proxy",
+        description: "Ocorreu um erro inesperado ao testar o proxy.",
+        variant: "destructive",
+      });
       return false;
     }
   };
