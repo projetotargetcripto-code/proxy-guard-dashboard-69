@@ -190,6 +190,10 @@ export function ClientInstanceDashboard() {
 
   const handleClearAllPids = async () => {
     try {
+      // Filtrar apenas instâncias que não são emprestadas
+      const nonBorrowedInstances = instances.filter(inst => !inst.borrowed_by_user_id);
+      const instanceIds = nonBorrowedInstances.map(inst => inst.id);
+      
       await clearAllPids();
     } catch (error) {
       console.error("Error clearing PIDs:", error);
@@ -409,7 +413,7 @@ export function ClientInstanceDashboard() {
                   </Button>
 
                   <PidTracker
-                    instances={instances}
+                    instances={instances.filter(inst => !inst.borrowed_by_user_id)}
                     onUpdatePids={handleUpdatePids}
                   />
 

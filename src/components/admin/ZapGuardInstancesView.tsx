@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Instance } from '@/types/instance';
 import { AdminUser } from '@/hooks/useAdminUsers';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from "@/components/ui/skeleton";
 import { LendInstanceDialog } from './LendInstanceDialog';
+import { AlertTriangle } from 'lucide-react';
 
 interface ZapGuardInstancesViewProps {
   users: AdminUser[];
@@ -61,12 +63,38 @@ export const ZapGuardInstancesView = ({ users }: ZapGuardInstancesViewProps) => 
     return new Date(borrowedUntil) < new Date();
   };
 
+  const expiredInstances = useMemo(() => {
+    return instances.filter(inst => 
+      inst.borrowed_by_user_id && 
+      inst.borrowed_until && 
+      isExpired(inst.borrowed_until)
+    );
+  }, [instances]);
+
   if (loading) {
     return <Skeleton className="h-64" />;
   }
 
   return (
     <>
+      {expiredInstances.length > 0 && (
+        <Alert variant="destructive" className="mb-4 bg-destructive/10 border-destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Empréstimos Expirados</AlertTitle>
+          <AlertDescription>
+            {expiredInstances.length} instância{expiredInstances.length > 1 ? 's' : ''} com empréstimo expirado.
+            Revogue manualmente se necessário:
+            <ul className="mt-2 space-y-1">
+              {expiredInstances.map(inst => (
+                <li key={inst.id} className="text-sm">
+                  • <strong>{inst.instance_name}</strong> - Emprestada para {getBorrowedUserEmail(inst.borrowed_by_user_id)} (Expirou em {new Date(inst.borrowed_until!).toLocaleDateString('pt-BR')})
+                </li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <Card className="bg-card/80 backdrop-blur border-border/50">
         <CardHeader>
           <CardTitle className="text-primary">Instâncias Gestão ZapGuard (Enviadas à API)</CardTitle>
@@ -120,10 +148,16 @@ export const ZapGuardInstancesView = ({ users }: ZapGuardInstancesViewProps) => 
                       </TableCell>
                       <TableCell>
                         {instance.borrowed_until ? (
-                          <span className={`text-sm ${isExpired(instance.borrowed_until) ? 'text-destructive' : ''}`}>
-                            {new Date(instance.borrowed_until).toLocaleDateString('pt-BR')}
-                            {isExpired(instance.borrowed_until) && " (Expirado)"}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-sm ${isExpired(instance.borrowed_until) ? 'text-destructive font-bold' : ''}`}>
+                              {new Date(instance.borrowed_until).toLocaleDateString('pt-BR')}
+                            </span>
+                            {isExpired(instance.borrowed_until) && (
+                              <Badge variant="destructive" className="text-xs">
+                                Expirado
+                              </Badge>
+                            )}
+                          </div>
                         ) : (
                           "-"
                         )}
@@ -131,10 +165,10 @@ export const ZapGuardInstancesView = ({ users }: ZapGuardInstancesViewProps) => 
                       <TableCell>
                         <Button
                           size="sm"
-                          variant="outline"
+                          variant={isExpired(instance.borrowed_until) ? "destructive" : "outline"}
                           onClick={() => handleLendClick(instance)}
                         >
-                          {instance.borrowed_by_user_id ? "Gerenciar" : "Emprestar"}
+                          {isExpired(instance.borrowed_until) ? "Revogar" : instance.borrowed_by_user_id ? "Gerenciar" : "Emprestar"}
                         </Button>
                       </TableCell>
                     </TableRow>
