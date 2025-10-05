@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       instances: {
         Row: {
+          account_id: number | null
           api_sent_at: string | null
           borrowed_by_user_id: string | null
           borrowed_until: string | null
@@ -42,6 +43,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_id?: number | null
           api_sent_at?: string | null
           borrowed_by_user_id?: string | null
           borrowed_until?: string | null
@@ -68,6 +70,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_id?: number | null
           api_sent_at?: string | null
           borrowed_by_user_id?: string | null
           borrowed_until?: string | null
@@ -112,18 +115,21 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_id: number | null
           created_at: string
           email: string | null
           id: string
           updated_at: string
         }
         Insert: {
+          account_id?: number | null
           created_at?: string
           email?: string | null
           id: string
           updated_at?: string
         }
         Update: {
+          account_id?: number | null
           created_at?: string
           email?: string | null
           id?: string
@@ -244,6 +250,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_instance_account_id: {
+        Args: { instance_row: Database["public"]["Tables"]["instances"]["Row"] }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

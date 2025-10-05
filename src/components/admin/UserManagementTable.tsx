@@ -28,6 +28,7 @@ export const UserManagementTable = ({ users, onUpdateRole, onDeleteUser }: UserM
         <TableHeader>
           <TableRow>
             <TableHead>Email</TableHead>
+            <TableHead>Account ID</TableHead>
             <TableHead>Role</TableHead>
             <TableHead>Data de Criação</TableHead>
             <TableHead className="text-right">Ações</TableHead>
@@ -36,7 +37,7 @@ export const UserManagementTable = ({ users, onUpdateRole, onDeleteUser }: UserM
         <TableBody>
           {users.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={4} className="text-center text-muted-foreground">
+              <TableCell colSpan={5} className="text-center text-muted-foreground">
                 Nenhum usuário encontrado
               </TableCell>
             </TableRow>
@@ -44,6 +45,11 @@ export const UserManagementTable = ({ users, onUpdateRole, onDeleteUser }: UserM
             users.map((user) => (
               <TableRow key={user.id}>
                 <TableCell className="font-medium">{user.email}</TableCell>
+                <TableCell>
+                  <Badge variant="outline">
+                    {user.account_id || 'N/A'}
+                  </Badge>
+                </TableCell>
                 <TableCell>
                   {user.role === 'admin' ? (
                     <Badge variant="default" className="bg-gradient-golden">

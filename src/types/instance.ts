@@ -51,6 +51,7 @@ export interface Instance {
   managed_by_zapguard: boolean;
   borrowed_by_user_id?: string | null;
   borrowed_until?: string | null;
+  account_id?: number | null;
   created_at: string;
   updated_at: string;
   proxies?: Proxy;

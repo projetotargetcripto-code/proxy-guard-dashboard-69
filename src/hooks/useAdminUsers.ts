@@ -7,6 +7,7 @@ export interface AdminUser {
   email: string | null;
   created_at: string;
   role: 'admin' | 'user' | null;
+  account_id: number | null;
 }
 
 export const useAdminUsers = () => {
@@ -41,6 +42,7 @@ export const useAdminUsers = () => {
           email: profile.email,
           created_at: profile.created_at,
           role: userRole?.role as 'admin' | 'user' | null || null,
+          account_id: profile.account_id,
         };
       }) || [];
 
