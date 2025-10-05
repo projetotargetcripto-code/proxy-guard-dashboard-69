@@ -32,6 +32,7 @@ interface ApiInstancesGridProps {
   onTestingAllChange?: (isTesting: boolean) => void;
   showRemoveButton?: boolean;
   allowStatusEdit?: boolean;
+  isClientView?: boolean;
 }
 
 type TestConnectionResultState = {
@@ -83,6 +84,7 @@ export function ApiInstancesGrid({
   onTestingAllChange,
   showRemoveButton = true,
   allowStatusEdit = true,
+  isClientView = false,
 }: ApiInstancesGridProps) {
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState<Instance | null>(null);
@@ -803,7 +805,7 @@ export function ApiInstancesGrid({
       {apiInstances.map((apiInstance) => {
         const connectionResult = testConnectionResults[apiInstance.id];
         const presentation = getConnectionPresentation(connectionResult?.status);
-        const isBorrowed = !!apiInstance.borrowed_by_user_id;
+        const isBorrowed = isClientView && !!apiInstance.borrowed_by_user_id;
         const isExpired = apiInstance.borrowed_until && new Date(apiInstance.borrowed_until) < new Date();
 
         return (

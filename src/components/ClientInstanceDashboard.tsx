@@ -486,6 +486,7 @@ export function ClientInstanceDashboard() {
               onEdit={setEditingInstance}
               onDelete={handleDeleteInstance}
               onRefresh={refetch}
+              isClientView={true}
             />
           )}
         </TabsContent>
@@ -496,6 +497,7 @@ export function ClientInstanceDashboard() {
             services={services}
             onRemoveFromApi={handleRemoveFromApi}
             onUpdateInstance={handleApiInstanceUpdate}
+            isClientView={true}
           />
         </TabsContent>
 

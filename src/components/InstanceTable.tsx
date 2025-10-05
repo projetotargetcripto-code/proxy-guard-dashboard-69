@@ -66,6 +66,7 @@ interface InstanceTableProps {
   onEdit: (instance: Instance) => void;
   onDelete: (instanceId: string) => void;
   onRefresh: () => void;
+  isClientView?: boolean; // Controla se é a visão do cliente com restrições
 }
 
 export function InstanceTable({
@@ -76,6 +77,7 @@ export function InstanceTable({
   onEdit,
   onDelete,
   onRefresh,
+  isClientView = false,
 }: InstanceTableProps) {
   const [selectedApiInstance, setSelectedApiInstance] = useState<Instance | null>(null);
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
@@ -254,7 +256,7 @@ export function InstanceTable({
 
             {/* Rows */}
             {instances.map((instance) => {
-              const isBorrowed = !!instance.borrowed_by_user_id;
+              const isBorrowed = isClientView && !!instance.borrowed_by_user_id;
               const isExpired = instance.borrowed_until && new Date(instance.borrowed_until) < new Date();
               
               return (
@@ -268,7 +270,7 @@ export function InstanceTable({
                   )}
                 >
                   <div className="col-span-1 flex items-center">
-                    {!isBorrowed && (
+                    {!(isBorrowed && !isExpired) && (
                       <Checkbox
                         checked={selectedInstances.has(instance.id)}
                         onCheckedChange={(checked) => toggleInstanceSelection(instance.id, checked === true)}
@@ -299,16 +301,16 @@ export function InstanceTable({
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {instance.phone_number && !isBorrowed && (
+                        {instance.phone_number && !(isBorrowed && !isExpired) && (
                           <span className="font-bold">{`Tel: ${instance.phone_number}`}</span>
                         )}
-                        {instance.phone_number && !isBorrowed && " • "}
+                        {instance.phone_number && !(isBorrowed && !isExpired) && " • "}
                         {isBorrowed && !isExpired && (
                           <span className="font-bold text-purple-400">
                             Emprestada até {new Date(instance.borrowed_until!).toLocaleDateString('pt-BR')}
                           </span>
                         )}
-                        {(!isBorrowed || isExpired) && `Criado: ${new Date(instance.created_at).toLocaleDateString('pt-BR')}`}
+                        {(!(isBorrowed && !isExpired)) && `Criado: ${new Date(instance.created_at).toLocaleDateString('pt-BR')}`}
                       </p>
                     </div>
                   </div>
@@ -339,7 +341,9 @@ export function InstanceTable({
                   </div>
 
                   <div className="col-span-1">
-                    {!isBorrowed ? (
+                    {isBorrowed && !isExpired ? (
+                      <span className="text-xs text-muted-foreground italic">Oculto</span>
+                    ) : (
                       <div className="space-y-1">
                         <Badge variant={instance.pid1 !== '0000' ? 'default' : 'secondary'} className="text-xs">
                           {instance.pid1}
@@ -348,13 +352,15 @@ export function InstanceTable({
                           {instance.pid2}
                         </Badge>
                       </div>
-                    ) : (
-                      <span className="text-xs text-muted-foreground italic">Oculto</span>
                     )}
                   </div>
 
                   <div className="col-span-3">
-                    {!isBorrowed ? (
+                    {isBorrowed && !isExpired ? (
+                      <div className="text-xs text-muted-foreground italic">
+                        Credenciais ocultas
+                      </div>
+                    ) : (
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium">{instance.proxies?.name || 'N/A'}</span>
@@ -399,15 +405,13 @@ export function InstanceTable({
                           </div>
                         </div>
                       </div>
-                    ) : (
-                      <div className="text-xs text-muted-foreground italic">
-                        Credenciais ocultas
-                      </div>
                     )}
                   </div>
 
                   <div className="col-span-2">
-                    {!isBorrowed ? (
+                    {isBorrowed && !isExpired ? (
+                      <span className="text-xs text-muted-foreground italic">Oculto</span>
+                    ) : (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -417,8 +421,6 @@ export function InstanceTable({
                         <Copy className="h-3 w-3 mr-1" />
                         {instance.proxies?.ip}:{instance.proxies?.port}
                       </Button>
-                    ) : (
-                      <span className="text-xs text-muted-foreground italic">Oculto</span>
                     )}
                   </div>
 
@@ -438,7 +440,7 @@ export function InstanceTable({
                           <Copy className="mr-2 h-4 w-4" />
                           Copiar nome
                         </DropdownMenuItem>
-                        {!isBorrowed && (
+                        {!(isBorrowed && !isExpired) && (
                           <>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => openQuickEdit(instance)}>
