@@ -8,8 +8,9 @@ import { InstanceForm } from "./InstanceForm";
 import { InstanceTable } from "./InstanceTable";
 import { ServiceForm } from "./ServiceForm";
 import { ServiceTable } from "./ServiceTable";
+import { PidTracker } from "./PidTracker";
 import { BulkImportForm } from "./BulkImportForm";
-import { Search, Download, Plus, FileDown, Upload } from "lucide-react";
+import { Search, RotateCcw, Download, Plus, FileDown, Upload } from "lucide-react";
 import { useInstances } from "@/hooks/useInstances";
 import { useProxies } from "@/hooks/useProxies";
 import { useServices } from "@/hooks/useServices";
@@ -28,6 +29,8 @@ import { ApiInstancesGrid } from "./ApiInstancesGrid";
 interface BulkImportInstance {
   instance_name: string;
   instance_number: number;
+  pid1: string;
+  pid2: string;
   proxy_name: string;
   proxy_ip: string;
   proxy_port: number;
@@ -42,6 +45,8 @@ export function ClientInstanceDashboard() {
     createInstance,
     updateInstance,
     deleteInstance,
+    updatePids,
+    clearAllPids,
     bulkUpdateInstances,
     refetch,
   } = useInstances();
@@ -183,13 +188,36 @@ export function ClientInstanceDashboard() {
     }
   };
 
+  const handleClearAllPids = async () => {
+    try {
+      await clearAllPids();
+    } catch (error) {
+      console.error("Error clearing PIDs:", error);
+    }
+  };
+
+  const handleUpdatePids = async (pidUpdates: { instanceId: string; pid1: string; pid2: string }[]) => {
+    try {
+      await updatePids(pidUpdates);
+    } catch (error) {
+      console.error("Error updating PIDs:", error);
+      toast({
+        title: "Erro ao atualizar PIDs",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleExportToSpreadsheet = () => {
-    const csvHeader = "instance_name,instance_number,service_name,proxy_name,proxy_ip,proxy_port,proxy_username,proxy_password,status\n";
+    const csvHeader = "instance_name,instance_number,pid1,pid2,service_name,proxy_name,proxy_ip,proxy_port,proxy_username,proxy_password,status\n";
     const csvData = filteredInstances.map(instance => {
       const proxy = instance.proxies;
       return [
         `"${instance.instance_name}"`,
         instance.instance_number,
+        instance.pid1,
+        instance.pid2,
         instance.services?.name ? `"${instance.services.name}"` : "",
         proxy ? `"${proxy.name}"` : "",
         proxy ? proxy.ip : "",
@@ -237,8 +265,8 @@ export function ClientInstanceDashboard() {
         const instanceData: CreateInstanceData = {
           instance_name: instance.instance_name,
           instance_number: instance.instance_number,
-          pid1: "0000",
-          pid2: "0000",
+          pid1: instance.pid1 || "0000",
+          pid2: instance.pid2 || "0000",
           proxy_id: newProxy.id,
           status: "Repouso",
         };
@@ -370,6 +398,20 @@ export function ClientInstanceDashboard() {
                     <FileDown className="h-4 w-4 mr-2" />
                     Gerar PPX
                   </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={handleClearAllPids}
+                    className="border-destructive/20 text-destructive hover:bg-destructive/10"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Limpar PIDs
+                  </Button>
+
+                  <PidTracker
+                    instances={instances}
+                    onUpdatePids={handleUpdatePids}
+                  />
 
                   <Button
                     variant="outline"
