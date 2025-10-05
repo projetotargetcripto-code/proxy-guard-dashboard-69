@@ -10,7 +10,8 @@ import { ServiceForm } from "./ServiceForm";
 import { ServiceTable } from "./ServiceTable";
 import { PidTracker } from "./PidTracker";
 import { BulkImportForm } from "./BulkImportForm";
-import { Search, RotateCcw, Download, Plus, FileDown, Upload } from "lucide-react";
+import { Search, RotateCcw, Download, Plus, FileDown, Upload, Settings } from "lucide-react";
+import { ProxyManagementModal } from "./ProxyManagementModal";
 import { useInstances } from "@/hooks/useInstances";
 import { useProxies } from "@/hooks/useProxies";
 import { useServices } from "@/hooks/useServices";
@@ -61,19 +62,12 @@ export function ClientInstanceDashboard() {
   const [isAddingService, setIsAddingService] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [activeTab, setActiveTab] = useState("api-instances");
+  const [isProxyModalOpen, setIsProxyModalOpen] = useState(false);
 
-  const handleAddInstance = async (instanceData: CreateInstanceData, proxyData?: CreateProxyData) => {
+  const handleAddInstance = async (instanceData: CreateInstanceData) => {
     try {
-      let proxyId = instanceData.proxy_id;
-      
-      if (proxyData) {
-        const newProxy = await createProxy(proxyData);
-        proxyId = newProxy.id;
-      }
-
       await createInstance({
         ...instanceData,
-        proxy_id: proxyId,
         service_id: instanceData.service_id || null,
       });
 
@@ -83,18 +77,10 @@ export function ClientInstanceDashboard() {
     }
   };
 
-  const handleEditInstance = async (instance: Instance, instanceData: CreateInstanceData, proxyData?: CreateProxyData) => {
+  const handleEditInstance = async (instance: Instance, instanceData: CreateInstanceData) => {
     try {
-      let proxyId = instanceData.proxy_id;
-      
-      if (proxyData) {
-        const newProxy = await createProxy(proxyData);
-        proxyId = newProxy.id;
-      }
-
       await updateInstance(instance.id, {
         ...instanceData,
-        proxy_id: proxyId,
         service_id: instanceData.service_id || null,
       });
 
@@ -439,6 +425,15 @@ export function ClientInstanceDashboard() {
                   </Button>
 
                   <Button
+                    variant="outline"
+                    onClick={() => setIsProxyModalOpen(true)}
+                    className="border-primary/20 text-primary hover:bg-primary/10"
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Proxies
+                  </Button>
+
+                  <Button
                     onClick={() => setIsAddingInstance(true)}
                     className="bg-gradient-golden hover:shadow-golden"
                   >
@@ -470,11 +465,11 @@ export function ClientInstanceDashboard() {
               <CardContent>
                 <InstanceForm
                   instance={editingInstance}
-                  onSubmit={(data, proxyData) => {
+                  onSubmit={(data) => {
                     if (editingInstance) {
-                      handleEditInstance(editingInstance, data, proxyData);
+                      handleEditInstance(editingInstance, data);
                     } else {
-                      handleAddInstance(data, proxyData);
+                      handleAddInstance(data);
                     }
                   }}
                   onCancel={() => {
@@ -554,6 +549,11 @@ export function ClientInstanceDashboard() {
           )}
         </TabsContent>
       </Tabs>
+      
+      <ProxyManagementModal 
+        open={isProxyModalOpen} 
+        onOpenChange={setIsProxyModalOpen} 
+      />
     </div>
   );
 }

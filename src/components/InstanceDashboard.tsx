@@ -489,7 +489,7 @@ export function InstanceDashboard() {
                 <CardContent>
                   <InstanceForm
                     instance={editingInstance}
-                    onSubmit={(data, proxyData) => {
+                    onSubmit={(data: CreateInstanceData, proxyData?: CreateProxyData) => {
                       if (editingInstance) {
                         handleEditInstance(editingInstance, data, proxyData);
                       } else {

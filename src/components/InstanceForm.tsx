@@ -4,15 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown } from "lucide-react";
-import { Instance, CreateInstanceData, CreateProxyData, InstanceStatus } from "@/types/instance";
+import { Instance, CreateInstanceData, InstanceStatus } from "@/types/instance";
 import { useProxies } from "@/hooks/useProxies";
 import { useServices } from "@/hooks/useServices";
 
 interface InstanceFormProps {
   instance?: Instance | null;
-  onSubmit: (data: CreateInstanceData, proxyData?: CreateProxyData) => void;
+  onSubmit: (data: CreateInstanceData) => void;
   onCancel: () => void;
 }
 
@@ -30,20 +28,8 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
     status: "Repouso",
   });
 
-  const [proxyFormData, setProxyFormData] = useState<CreateProxyData>({
-    name: "",
-    ip: "",
-    port: 8080,
-    username: "",
-    password: "",
-  });
 
-  const [useExistingProxy, setUseExistingProxy] = useState(true);
-  const [showProxyForm, setShowProxyForm] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isEditingProxy, setIsEditingProxy] = useState(false);
-  const [proxyEditFormData, setProxyEditFormData] = useState<CreateProxyData | null>(null);
-  const [proxyEditErrors, setProxyEditErrors] = useState<Record<string, string>>({});
 
   const selectedProxy = proxies.find((proxy) => proxy.id === formData.proxy_id);
 
@@ -59,18 +45,8 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
         service_id: instance.service_id ?? null,
         status: instance.status,
       });
-      setUseExistingProxy(true);
-      setIsEditingProxy(false);
-      setProxyEditFormData(null);
-      setProxyEditErrors({});
     }
   }, [instance]);
-
-  useEffect(() => {
-    setIsEditingProxy(false);
-    setProxyEditFormData(null);
-    setProxyEditErrors({});
-  }, [formData.proxy_id, useExistingProxy]);
 
   const handleInputChange = <K extends keyof CreateInstanceData>(
     field: K,
@@ -80,15 +56,6 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
     clearError(field as string);
   };
 
-  const handleProxyInputChange = (field: keyof CreateProxyData, value: string | number) => {
-    setProxyFormData(prev => ({ ...prev, [field]: value }));
-    clearError(`proxy_${field}`);
-  };
-
-  const handleProxyEditInputChange = (field: keyof CreateProxyData, value: string | number) => {
-    setProxyEditFormData(prev => (prev ? { ...prev, [field]: value } : prev));
-    clearProxyEditError(field);
-  };
 
   const clearError = (field: string) => {
     if (errors[field]) {
@@ -100,15 +67,6 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
     }
   };
 
-  const clearProxyEditError = (field: keyof CreateProxyData) => {
-    if (proxyEditErrors[field]) {
-      setProxyEditErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
-  };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -121,35 +79,8 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
       newErrors.instance_number = "Número da instância é obrigatório";
     }
 
-    if (!useExistingProxy) {
-      if (!proxyFormData.name.trim()) {
-        newErrors.proxy_name = "Nome do proxy é obrigatório";
-      }
-
-      if (!proxyFormData.ip.trim()) {
-        newErrors.proxy_ip = "IP do proxy é obrigatório";
-      } else {
-        const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-        if (!ipRegex.test(proxyFormData.ip)) {
-          newErrors.proxy_ip = "IP inválido";
-        }
-      }
-
-      if (proxyFormData.port < 1 || proxyFormData.port > 65535) {
-        newErrors.proxy_port = "Porta deve estar entre 1 e 65535";
-      }
-
-      if (!proxyFormData.username.trim()) {
-        newErrors.proxy_username = "Username do proxy é obrigatório";
-      }
-
-      if (!proxyFormData.password.trim()) {
-        newErrors.proxy_password = "Senha do proxy é obrigatória";
-      }
-    } else {
-      if (!formData.proxy_id) {
-        newErrors.proxy_id = "Selecione um proxy";
-      }
+    if (!formData.proxy_id) {
+      newErrors.proxy_id = "Selecione um proxy";
     }
 
     setErrors(newErrors);
@@ -159,82 +90,10 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      onSubmit(formData, useExistingProxy ? undefined : proxyFormData);
+      onSubmit(formData);
     }
   };
 
-  const validateProxyEditForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!proxyEditFormData) {
-      return false;
-    }
-
-    if (!proxyEditFormData.name.trim()) {
-      newErrors.name = "Nome do proxy é obrigatório";
-    }
-
-    if (!proxyEditFormData.ip.trim()) {
-      newErrors.ip = "IP do proxy é obrigatório";
-    } else {
-      const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-      if (!ipRegex.test(proxyEditFormData.ip)) {
-        newErrors.ip = "IP inválido";
-      }
-    }
-
-    if (proxyEditFormData.port < 1 || proxyEditFormData.port > 65535) {
-      newErrors.port = "Porta deve estar entre 1 e 65535";
-    }
-
-    if (!proxyEditFormData.username.trim()) {
-      newErrors.username = "Username do proxy é obrigatório";
-    }
-
-    if (!proxyEditFormData.password.trim()) {
-      newErrors.password = "Senha do proxy é obrigatória";
-    }
-
-    setProxyEditErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleStartProxyEdit = () => {
-    if (!selectedProxy) return;
-
-    setProxyEditFormData({
-      name: selectedProxy.name,
-      ip: selectedProxy.ip,
-      port: selectedProxy.port,
-      username: selectedProxy.username,
-      password: selectedProxy.password,
-    });
-    setProxyEditErrors({});
-    setIsEditingProxy(true);
-  };
-
-  const handleCancelProxyEdit = () => {
-    setIsEditingProxy(false);
-    setProxyEditFormData(null);
-    setProxyEditErrors({});
-  };
-
-  const handleSaveProxyEdit = async () => {
-    if (!selectedProxy || !proxyEditFormData) return;
-
-    if (!validateProxyEditForm()) {
-      return;
-    }
-
-    try {
-      await updateProxy(selectedProxy.id, proxyEditFormData);
-      setIsEditingProxy(false);
-      setProxyEditFormData(null);
-      setProxyEditErrors({});
-    } catch (error) {
-      console.error("Error updating proxy:", error);
-    }
-  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -280,233 +139,22 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
       </div>
 
       {/* Proxy Selection */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-4">
-          <Button
-            type="button"
-            variant={useExistingProxy ? "default" : "outline"}
-            onClick={() => setUseExistingProxy(true)}
-          >
-            Usar Proxy Existente
-          </Button>
-          <Button
-            type="button"
-            variant={!useExistingProxy ? "default" : "outline"}
-            onClick={() => setUseExistingProxy(false)}
-          >
-            Criar Novo Proxy
-          </Button>
-        </div>
-
-        {useExistingProxy ? (
-          <div className="space-y-2">
-            <Label htmlFor="proxy_id">Selecionar Proxy *</Label>
-            <Select value={formData.proxy_id} onValueChange={(value) => handleInputChange("proxy_id", value)}>
-              <SelectTrigger className={errors.proxy_id ? "border-destructive" : ""}>
-                <SelectValue placeholder="Selecione um proxy" />
-              </SelectTrigger>
-              <SelectContent>
-                {proxies.map((proxy) => (
-                  <SelectItem key={proxy.id} value={proxy.id}>
-                    {proxy.name} - {proxy.ip}:{proxy.port}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.proxy_id && (
-              <p className="text-sm text-destructive">{errors.proxy_id}</p>
-            )}
-
-            {selectedProxy && (
-              <div className="space-y-4 pt-2">
-                <Button
-                  type="button"
-                  variant={isEditingProxy ? "secondary" : "outline"}
-                  onClick={isEditingProxy ? handleCancelProxyEdit : handleStartProxyEdit}
-                  className={isEditingProxy ? "bg-secondary text-secondary-foreground hover:bg-secondary/90" : ""}
-                >
-                  {isEditingProxy ? "Cancelar edição do proxy" : "Editar Proxy Selecionado"}
-                </Button>
-
-                {isEditingProxy && proxyEditFormData && (
-                  <Card className="bg-muted/30 border-border/50">
-                    <CardContent className="p-4 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="edit_proxy_name">Nome do Proxy *</Label>
-                          <Input
-                            id="edit_proxy_name"
-                            value={proxyEditFormData.name}
-                            onChange={(e) => handleProxyEditInputChange("name", e.target.value)}
-                            placeholder="Ex: Proxy Brasil 1"
-                            className={proxyEditErrors.name ? "border-destructive" : ""}
-                          />
-                          {proxyEditErrors.name && (
-                            <p className="text-sm text-destructive">{proxyEditErrors.name}</p>
-                          )}
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="edit_proxy_ip">IP do Proxy *</Label>
-                          <Input
-                            id="edit_proxy_ip"
-                            value={proxyEditFormData.ip}
-                            onChange={(e) => handleProxyEditInputChange("ip", e.target.value)}
-                            placeholder="Ex: 192.168.1.100"
-                            className={proxyEditErrors.ip ? "border-destructive" : ""}
-                          />
-                          {proxyEditErrors.ip && (
-                            <p className="text-sm text-destructive">{proxyEditErrors.ip}</p>
-                          )}
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="edit_proxy_port">Porta do Proxy *</Label>
-                          <Input
-                            id="edit_proxy_port"
-                            type="number"
-                            value={proxyEditFormData.port}
-                            onChange={(e) => handleProxyEditInputChange("port", parseInt(e.target.value) || 0)}
-                            placeholder="Ex: 8080"
-                            min="1"
-                            max="65535"
-                            className={proxyEditErrors.port ? "border-destructive" : ""}
-                          />
-                          {proxyEditErrors.port && (
-                            <p className="text-sm text-destructive">{proxyEditErrors.port}</p>
-                          )}
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="edit_proxy_username">Username do Proxy *</Label>
-                          <Input
-                            id="edit_proxy_username"
-                            value={proxyEditFormData.username}
-                            onChange={(e) => handleProxyEditInputChange("username", e.target.value)}
-                            placeholder="Ex: usuario123"
-                            className={proxyEditErrors.username ? "border-destructive" : ""}
-                          />
-                          {proxyEditErrors.username && (
-                            <p className="text-sm text-destructive">{proxyEditErrors.username}</p>
-                          )}
-                        </div>
-
-                        <div className="space-y-2 md:col-span-2">
-                          <Label htmlFor="edit_proxy_password">Senha do Proxy *</Label>
-                          <Input
-                            id="edit_proxy_password"
-                            type="password"
-                            value={proxyEditFormData.password}
-                            onChange={(e) => handleProxyEditInputChange("password", e.target.value)}
-                            placeholder="Digite a senha"
-                            className={proxyEditErrors.password ? "border-destructive" : ""}
-                          />
-                          {proxyEditErrors.password && (
-                            <p className="text-sm text-destructive">{proxyEditErrors.password}</p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        <Button type="button" className="bg-gradient-golden hover:shadow-golden" onClick={handleSaveProxyEdit}>
-                          Salvar Proxy
-                        </Button>
-                        <Button type="button" variant="outline" onClick={handleCancelProxyEdit}>
-                          Cancelar
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            )}
-          </div>
-        ) : (
-          <Collapsible open={showProxyForm} onOpenChange={setShowProxyForm}>
-            <CollapsibleTrigger asChild>
-              <Button type="button" variant="outline" className="w-full">
-                <ChevronDown className="h-4 w-4 mr-2" />
-                {showProxyForm ? "Ocultar" : "Mostrar"} Formulário do Proxy
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="proxy_name">Nome do Proxy *</Label>
-                  <Input
-                    id="proxy_name"
-                    value={proxyFormData.name}
-                    onChange={(e) => handleProxyInputChange("name", e.target.value)}
-                    placeholder="Ex: Proxy Brasil 1"
-                    className={errors.proxy_name ? "border-destructive" : ""}
-                  />
-                  {errors.proxy_name && (
-                    <p className="text-sm text-destructive">{errors.proxy_name}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="proxy_ip">IP do Proxy *</Label>
-                  <Input
-                    id="proxy_ip"
-                    value={proxyFormData.ip}
-                    onChange={(e) => handleProxyInputChange("ip", e.target.value)}
-                    placeholder="Ex: 192.168.1.100"
-                    className={errors.proxy_ip ? "border-destructive" : ""}
-                  />
-                  {errors.proxy_ip && (
-                    <p className="text-sm text-destructive">{errors.proxy_ip}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="proxy_port">Porta do Proxy *</Label>
-                  <Input
-                    id="proxy_port"
-                    type="number"
-                    value={proxyFormData.port}
-                    onChange={(e) => handleProxyInputChange("port", parseInt(e.target.value) || 0)}
-                    placeholder="Ex: 8080"
-                    min="1"
-                    max="65535"
-                    className={errors.proxy_port ? "border-destructive" : ""}
-                  />
-                  {errors.proxy_port && (
-                    <p className="text-sm text-destructive">{errors.proxy_port}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="proxy_username">Username do Proxy *</Label>
-                  <Input
-                    id="proxy_username"
-                    value={proxyFormData.username}
-                    onChange={(e) => handleProxyInputChange("username", e.target.value)}
-                    placeholder="Ex: usuario123"
-                    className={errors.proxy_username ? "border-destructive" : ""}
-                  />
-                  {errors.proxy_username && (
-                    <p className="text-sm text-destructive">{errors.proxy_username}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="proxy_password">Senha do Proxy *</Label>
-                  <Input
-                    id="proxy_password"
-                    type="password"
-                    value={proxyFormData.password}
-                    onChange={(e) => handleProxyInputChange("password", e.target.value)}
-                    placeholder="Digite a senha"
-                    className={errors.proxy_password ? "border-destructive" : ""}
-                  />
-                  {errors.proxy_password && (
-                    <p className="text-sm text-destructive">{errors.proxy_password}</p>
-                  )}
-                </div>
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
+      <div className="space-y-2">
+        <Label htmlFor="proxy_id">Selecionar Proxy *</Label>
+        <Select value={formData.proxy_id} onValueChange={(value) => handleInputChange("proxy_id", value)}>
+          <SelectTrigger className={errors.proxy_id ? "border-destructive" : ""}>
+            <SelectValue placeholder="Selecione um proxy" />
+          </SelectTrigger>
+          <SelectContent>
+            {proxies.map((proxy) => (
+              <SelectItem key={proxy.id} value={proxy.id}>
+                {proxy.name} - {proxy.ip}:{proxy.port}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {errors.proxy_id && (
+          <p className="text-sm text-destructive">{errors.proxy_id}</p>
         )}
       </div>
 
