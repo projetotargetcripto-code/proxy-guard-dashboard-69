@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SystemStatsCards } from "./SystemStatsCards";
 import { UserManagementTable } from "./UserManagementTable";
 import { UserInstancesView } from "./UserInstancesView";
+import { ZapGuardInstancesView } from "./ZapGuardInstancesView";
 import { useAdminUsers } from "@/hooks/useAdminUsers";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -23,9 +24,10 @@ export const AdminPanel = () => {
       <SystemStatsCards />
 
       <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="users">Gerenciar Usuários</TabsTrigger>
           <TabsTrigger value="instances">Instâncias por Usuário</TabsTrigger>
+          <TabsTrigger value="zapguard">Gestão ZapGuard</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users" className="space-y-4">
@@ -45,6 +47,10 @@ export const AdminPanel = () => {
 
         <TabsContent value="instances" className="space-y-4">
           <UserInstancesView users={users} />
+        </TabsContent>
+
+        <TabsContent value="zapguard" className="space-y-4">
+          <ZapGuardInstancesView users={users} />
         </TabsContent>
       </Tabs>
     </div>

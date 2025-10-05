@@ -17,11 +17,14 @@ export type Database = {
       instances: {
         Row: {
           api_sent_at: string | null
+          borrowed_by_user_id: string | null
+          borrowed_until: string | null
           created_at: string
           id: string
           inbox_id: string | null
           instance_name: string
           instance_number: number
+          managed_by_zapguard: boolean
           phone_number: string | null
           pid1: string
           pid2: string
@@ -40,11 +43,14 @@ export type Database = {
         }
         Insert: {
           api_sent_at?: string | null
+          borrowed_by_user_id?: string | null
+          borrowed_until?: string | null
           created_at?: string
           id?: string
           inbox_id?: string | null
           instance_name: string
           instance_number: number
+          managed_by_zapguard?: boolean
           phone_number?: string | null
           pid1?: string
           pid2?: string
@@ -63,11 +69,14 @@ export type Database = {
         }
         Update: {
           api_sent_at?: string | null
+          borrowed_by_user_id?: string | null
+          borrowed_until?: string | null
           created_at?: string
           id?: string
           inbox_id?: string | null
           instance_name?: string
           instance_number?: number
+          managed_by_zapguard?: boolean
           phone_number?: string | null
           pid1?: string
           pid2?: string

@@ -48,6 +48,9 @@ export interface Instance {
   sent_to_api?: boolean;
   api_sent_at?: string | null;
   inbox_id?: string | null;
+  managed_by_zapguard: boolean;
+  borrowed_by_user_id?: string | null;
+  borrowed_until?: string | null;
   created_at: string;
   updated_at: string;
   proxies?: Proxy;
