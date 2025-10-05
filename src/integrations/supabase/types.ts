@@ -41,6 +41,7 @@ export type Database = {
           service_id: string | null
           status: Database["public"]["Enums"]["instance_status"]
           updated_at: string
+          user_id: string
         }
         Insert: {
           account_id?: number | null
@@ -68,6 +69,7 @@ export type Database = {
           service_id?: string | null
           status?: Database["public"]["Enums"]["instance_status"]
           updated_at?: string
+          user_id?: string
         }
         Update: {
           account_id?: number | null
@@ -95,6 +97,7 @@ export type Database = {
           service_id?: string | null
           status?: Database["public"]["Enums"]["instance_status"]
           updated_at?: string
+          user_id?: string
         }
         Relationships: [
           {
