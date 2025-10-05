@@ -4,33 +4,30 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InstanceDashboard } from "@/components/InstanceDashboard";
 import { ServiceTable } from "@/components/ServiceTable";
 import { ServiceForm } from "@/components/ServiceForm";
-import { ClientTable } from "@/components/ClientTable";
-import { ClientForm } from "@/components/ClientForm";
 import { useServices } from "@/hooks/useServices";
-import { useClients } from "@/hooks/useClients";
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Settings, Users, Loader2, LogOut } from "lucide-react";
-import { Service, CreateServiceData, Client, CreateClientData } from "@/types/instance";
-import { useInstances } from "@/hooks/useInstances"; // Add useInstances import
+import { Plus, Loader2, LogOut } from "lucide-react";
+import { Service, CreateServiceData } from "@/types/instance";
+import { useInstances } from "@/hooks/useInstances";
 
-const Index = () => {
-  const { user, loading, signOut } = useAuth();
+const DashFarm = () => {
+  const { user, loading, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
   const { services, loading: servicesLoading, createService, updateService, deleteService } = useServices();
-  const { clients, loading: clientsLoading, createClient, updateClient, deleteClient } = useClients();
-  const { instances } = useInstances(); // Add instances hook
+  const { instances } = useInstances();
   const [isAddingService, setIsAddingService] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
-  const [isAddingClient, setIsAddingClient] = useState(false);
-  const [editingClient, setEditingClient] = useState<Client | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
       navigate('/auth');
+    } else if (!loading && user && !isAdmin) {
+      // Redireciona usuários não-admin para a página inicial
+      navigate('/');
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, isAdmin, navigate]);
 
   const handleAddService = async (data: CreateServiceData) => {
     try {
@@ -58,55 +55,10 @@ const Index = () => {
     }
   };
 
-  const handleAddClient = async (data: CreateClientData) => {
-    try {
-      await createClient(data);
-      setIsAddingClient(false);
-    } catch (error) {
-      console.error('Error adding client:', error);
-    }
-  };
-
-  const handleEditClient = async (client: Client, data: CreateClientData) => {
-    try {
-      await updateClient(client.id, data);
-      setEditingClient(null);
-    } catch (error) {
-      console.error('Error updating client:', error);
-    }
-  };
-
-  const handleDeleteClient = async (clientId: string) => {
-    try {
-      await deleteClient(clientId);
-    } catch (error) {
-      console.error('Error deleting client:', error);
-    }
-  };
-
   // Calculate service instance counts
   const serviceInstanceCounts = instances.reduce((acc, instance) => {
     if (instance.service_id) {
       acc[instance.service_id] = (acc[instance.service_id] || 0) + 1;
-    }
-    return acc;
-  }, {} as Record<string, number>);
-
-  // Calculate client service counts
-  const clientServiceCounts = services.reduce((acc, service) => {
-    if (service.client_id) {
-      acc[service.client_id] = (acc[service.client_id] || 0) + 1;
-    }
-    return acc;
-  }, {} as Record<string, number>);
-
-  // Calculate client instance counts (sum of instances for all services of that client)
-  const clientInstanceCounts = instances.reduce((acc, instance) => {
-    if (instance.service_id) {
-      const service = services.find(s => s.id === instance.service_id);
-      if (service && service.client_id) {
-        acc[service.client_id] = (acc[service.client_id] || 0) + 1;
-      }
     }
     return acc;
   }, {} as Record<string, number>);
@@ -119,7 +71,7 @@ const Index = () => {
     );
   }
 
-  if (!user) {
+  if (!user || !isAdmin) {
     return null;
   }
 
@@ -127,7 +79,7 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-dark">
       <header className="bg-card/80 backdrop-blur border-b border-border/50 p-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-primary">Painel de Controle</h1>
+          <h1 className="text-2xl font-bold text-primary">Painel de Administração - DashFarm</h1>
           <Button
             onClick={signOut}
             variant="outline"
@@ -142,52 +94,13 @@ const Index = () => {
 
       <main className="container mx-auto p-6">
         <Tabs defaultValue="instances" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="instances">Instâncias</TabsTrigger>
-            <TabsTrigger value="clients">Clientes</TabsTrigger>
             <TabsTrigger value="services">Serviços</TabsTrigger>
           </TabsList>
 
           <TabsContent value="instances" className="space-y-4">
             <InstanceDashboard />
-          </TabsContent>
-
-          <TabsContent value="clients" className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-primary">Gerenciar Clientes</h2>
-              <Button
-                onClick={() => setIsAddingClient(true)}
-                className="bg-gradient-golden hover:shadow-golden"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Adicionar Cliente
-              </Button>
-            </div>
-
-            {isAddingClient || editingClient ? (
-              <ClientForm
-                client={editingClient}
-                onSubmit={(data) => {
-                  if (editingClient) {
-                    handleEditClient(editingClient, data);
-                  } else {
-                    handleAddClient(data);
-                  }
-                }}
-                onCancel={() => {
-                  setIsAddingClient(false);
-                  setEditingClient(null);
-                }}
-              />
-            ) : (
-              <ClientTable
-                clients={clients}
-                onEdit={setEditingClient}
-                onDelete={handleDeleteClient}
-                clientServiceCounts={clientServiceCounts}
-                clientInstanceCounts={clientInstanceCounts}
-              />
-            )}
           </TabsContent>
 
           <TabsContent value="services" className="space-y-4">
@@ -212,7 +125,6 @@ const Index = () => {
                 <CardContent>
                   <ServiceForm
                     service={editingService}
-                    clients={clients}
                     onSubmit={(data) => {
                       if (editingService) {
                         handleEditService(editingService, data);
@@ -242,4 +154,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default DashFarm;

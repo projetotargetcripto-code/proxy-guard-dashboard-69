@@ -1,111 +1,45 @@
 import { useMemo } from "react";
-import { useParams } from "react-router-dom";
 import { ApiInstancesGrid } from "@/components/ApiInstancesGrid";
 import { useInstances } from "@/hooks/useInstances";
 import { useServices } from "@/hooks/useServices";
-import { useClients } from "@/hooks/useClients";
 import { InstanceStatus } from "@/types/instance";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 const ZapGuardApp = () => {
-  const { accountId: accountIdParam } = useParams<{ accountId?: string }>();
   const {
     instances,
     loading: instancesLoading,
     updateInstance,
   } = useInstances();
   const { services, loading: servicesLoading } = useServices();
-  const { clients, loading: clientsLoading } = useClients();
 
-  const accountId = useMemo(() => {
-    if (!accountIdParam) {
-      return null;
-    }
-
-    const parsed = Number(accountIdParam);
-
-    if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
-      return null;
-    }
-
-    return parsed;
-  }, [accountIdParam]);
-
-  const targetClient = useMemo(() => {
-    if (accountId == null) {
-      return undefined;
-    }
-
-    return clients.find(
-      (client) =>
-        typeof client.account_id === "number" && client.account_id === accountId,
-    );
-  }, [clients, accountId]);
-
-  const clientServices = useMemo(() => {
-    if (!targetClient) {
-      return [];
-    }
-
-    return services.filter((service) => service.client_id === targetClient.id);
-  }, [services, targetClient]);
-
-  const clientServiceIds = useMemo(() => {
-    return new Set(clientServices.map((service) => service.id));
-  }, [clientServices]);
-
-  const clientInstances = useMemo(() => {
-    if (!targetClient) {
-      return [] as typeof instances;
-    }
-
-    return instances.filter((instance) => {
-      const instanceServiceId = instance.service_id ?? instance.services?.id ?? null;
-
-      if (instanceServiceId && clientServiceIds.has(instanceServiceId)) {
-        return true;
-      }
-
-      const nestedClientId = instance.services?.clients?.id;
-
-      if (nestedClientId && nestedClientId === targetClient.id) {
-        return true;
-      }
-
-      return false;
-    });
-  }, [instances, targetClient, clientServiceIds]);
-
-  const apiInstancesForClient = useMemo(() => {
-    return clientInstances.filter((instance) => instance.sent_to_api);
-  }, [clientInstances]);
+  const apiInstances = useMemo(() => {
+    return instances.filter((instance) => instance.sent_to_api);
+  }, [instances]);
 
   const servicesWithApiInstanceCount = useMemo(() => {
-    const counts = new Map<string, number>();
-
-    apiInstancesForClient.forEach((instance) => {
+    const counts: Record<string, number> = {};
+    
+    apiInstances.forEach((instance) => {
       const serviceId = instance.service_id ?? instance.services?.id ?? null;
-
-      if (!serviceId) {
-        return;
+      if (serviceId) {
+        counts[serviceId] = (counts[serviceId] || 0) + 1;
       }
-
-      counts.set(serviceId, (counts.get(serviceId) ?? 0) + 1);
     });
 
-    return clientServices.map((service) => ({
-      service,
-      count: counts.get(service.id) ?? 0,
+    return services.map((service) => ({
+      ...service,
+      count: counts[service.id] || 0,
     }));
-  }, [clientServices, apiInstancesForClient]);
+  }, [services, apiInstances]);
 
   const servicesInZapGuardApp = useMemo(() => {
     return servicesWithApiInstanceCount.filter(({ count }) => count > 0);
   }, [servicesWithApiInstanceCount]);
 
-  const hasApiInstances = apiInstancesForClient.length > 0;
+  const hasApiInstances = apiInstances.length > 0;
 
   const handleRemoveFromApi = async (instanceId: string) => {
     try {
@@ -126,145 +60,114 @@ const ZapGuardApp = () => {
     }
   };
 
-  const isLoadingData = instancesLoading || servicesLoading || clientsLoading;
-
-  const errorMessage = useMemo(() => {
-    if (!accountIdParam) {
-      return "Nenhum account_id informado na URL.";
-    }
-
-    if (accountId == null) {
-      return "O account_id informado na URL é inválido.";
-    }
-
-    if (!clientsLoading && !targetClient) {
-      return "Cliente não encontrado para o account_id informado.";
-    }
-
-    return null;
-  }, [accountIdParam, accountId, clientsLoading, targetClient]);
-
-  if (errorMessage) {
-    return (
-      <div className="min-h-screen bg-gradient-dark flex items-center justify-center p-6">
-        <div className="max-w-md rounded-lg border border-destructive/40 bg-card/80 p-6 text-center">
-          <h2 className="text-xl font-semibold text-destructive">Erro</h2>
-          <p className="mt-2 text-muted-foreground">{errorMessage}</p>
-        </div>
-      </div>
-    );
-  }
+  const isLoadingData = instancesLoading || servicesLoading;
 
   if (isLoadingData) {
     return (
-      <div className="min-h-screen bg-gradient-dark flex items-center justify-center p-6">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      <div className="min-h-screen bg-gradient-dark flex items-center justify-center">
+        <p className="text-muted-foreground">Carregando...</p>
       </div>
     );
-  }
-
-  if (!targetClient) {
-    return null;
   }
 
   return (
     <div className="min-h-screen bg-gradient-dark p-6">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold bg-gradient-golden bg-clip-text text-transparent">
-            Instâncias na API
+      <div className="mx-auto max-w-7xl">
+        <header className="mb-8 text-center">
+          <h1 className="text-4xl font-bold bg-gradient-golden bg-clip-text text-transparent">
+            ZapGuard App
           </h1>
-          <p className="text-muted-foreground">
-            Cliente: <span className="text-foreground font-semibold">{targetClient.name}</span>
+          <p className="text-muted-foreground mt-2">
+            Gerenciamento de Instâncias na API
           </p>
-          <p className="text-sm text-muted-foreground">
-            Account ID: <span className="text-foreground font-semibold">{accountId}</span>
-          </p>
-        </div>
-        <Tabs
-          defaultValue={hasApiInstances ? "instances" : "services"}
-          className="space-y-4"
-        >
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="instances">Instâncias na API</TabsTrigger>
-            <TabsTrigger value="services">Serviços</TabsTrigger>
-          </TabsList>
-          <TabsContent value="instances" className="space-y-4">
-            {hasApiInstances ? (
-              <div className="rounded-xl border border-border/40 bg-card/60 backdrop-blur p-6 shadow-lg">
-                <ApiInstancesGrid
-                  instances={apiInstancesForClient}
-                  loading={instancesLoading}
-                  onRemoveFromApi={handleRemoveFromApi}
-                  onUpdateInstance={handleApiInstanceUpdate}
-                  services={clientServices}
-                  showRemoveButton={false}
-                  allowStatusEdit={false}
-                />
+        </header>
+
+        {!hasApiInstances ? (
+          <Card className="bg-card/80 backdrop-blur border-border/50">
+            <CardContent className="p-12 text-center">
+              <div className="space-y-4">
+                <div className="mx-auto w-32 h-32 bg-muted/20 rounded-full flex items-center justify-center">
+                  <p className="text-6xl">📱</p>
+                </div>
+                <h3 className="text-xl font-semibold text-primary">
+                  Nenhuma instância na API
+                </h3>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  Não há instâncias adicionadas à API no momento. 
+                  Adicione instâncias através do painel principal.
+                </p>
               </div>
-            ) : (
-              <Card className="border border-border/40 bg-card/60 backdrop-blur">
+            </CardContent>
+          </Card>
+        ) : (
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+              <TabsTrigger value="instances">Instâncias</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="space-y-4">
+              <Card className="bg-card/80 backdrop-blur border-border/50">
                 <CardHeader>
-                  <CardTitle className="text-lg text-primary">
-                    Nenhuma instância cadastrada
-                  </CardTitle>
+                  <CardTitle className="text-primary">Estatísticas</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    Não encontramos instâncias enviadas para a API para este cliente no
-                    momento.
-                  </p>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">Total de Instâncias</p>
+                      <p className="text-3xl font-bold text-primary">{apiInstances.length}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">Serviços Ativos</p>
+                      <p className="text-3xl font-bold text-accent">{servicesInZapGuardApp.length}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">Status Geral</p>
+                      <Badge variant="default" className="text-sm">
+                        Operacional
+                      </Badge>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
-            )}
-          </TabsContent>
-          <TabsContent value="services" className="space-y-4">
-            {servicesInZapGuardApp.length > 0 ? (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {servicesInZapGuardApp.map(({ service, count }) => (
-                  <Card
-                    key={service.id}
-                    className="border border-border/40 bg-card/60 backdrop-blur"
-                  >
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg text-primary">
-                        {service.name}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3 text-sm text-muted-foreground">
-                      {service.description ? (
-                        <p>{service.description}</p>
-                      ) : (
-                        <p className="italic text-muted-foreground/70">
-                          Nenhuma descrição cadastrada.
-                        </p>
-                      )}
-                      <div>
-                        <Badge variant="outline" className="border-primary/40 text-primary">
-                          {count} {count === 1 ? "instância" : "instâncias"} na API
+
+              <Card className="bg-card/80 backdrop-blur border-border/50">
+                <CardHeader>
+                  <CardTitle className="text-primary">Serviços</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {servicesInZapGuardApp.map((service) => (
+                      <div
+                        key={service.id}
+                        className="flex items-center justify-between p-3 rounded-lg bg-muted/10 border border-border/50"
+                      >
+                        <div>
+                          <p className="font-medium text-foreground">{service.name}</p>
+                          {service.description && (
+                            <p className="text-sm text-muted-foreground">{service.description}</p>
+                          )}
+                        </div>
+                        <Badge variant="secondary">
+                          {service.count} instância{service.count !== 1 ? 's' : ''}
                         </Badge>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card className="border border-border/40 bg-card/60 backdrop-blur">
-                <CardHeader>
-                  <CardTitle className="text-lg text-primary">
-                    Nenhum serviço encontrado
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    Não há serviços com instâncias ativas na ZapGuardApp para este cliente
-                    no momento.
-                  </p>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
-            )}
-          </TabsContent>
-        </Tabs>
+            </TabsContent>
+
+            <TabsContent value="instances">
+              <ApiInstancesGrid
+                instances={apiInstances}
+                services={services}
+                onRemoveFromApi={handleRemoveFromApi}
+                onUpdateInstance={handleApiInstanceUpdate}
+              />
+            </TabsContent>
+          </Tabs>
+        )}
       </div>
     </div>
   );

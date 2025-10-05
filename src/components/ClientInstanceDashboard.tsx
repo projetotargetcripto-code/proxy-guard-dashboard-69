@@ -13,7 +13,6 @@ import { Search, Download, Plus, FileDown, Upload } from "lucide-react";
 import { useInstances } from "@/hooks/useInstances";
 import { useProxies } from "@/hooks/useProxies";
 import { useServices } from "@/hooks/useServices";
-import { useClients } from "@/hooks/useClients";
 import {
   Instance,
   CreateInstanceData,
@@ -48,7 +47,6 @@ export function ClientInstanceDashboard() {
   } = useInstances();
   const { createProxy } = useProxies();
   const { services, createService, updateService, deleteService } = useServices();
-  const { clients } = useClients();
   const { toast } = useToast();
   
   const [searchTerm, setSearchTerm] = useState("");
@@ -481,7 +479,6 @@ export function ClientInstanceDashboard() {
               <CardContent>
                 <ServiceForm
                   service={editingService}
-                  clients={clients}
                   onSubmit={(data) => {
                     if (editingService) {
                       handleEditService(editingService, data);

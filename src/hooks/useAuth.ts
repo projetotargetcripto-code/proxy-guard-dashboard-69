@@ -1,11 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from './use-toast';
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     // Set up auth state listener
@@ -14,6 +17,15 @@ export const useAuth = () => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Check if user is admin
+        if (session?.user) {
+          setTimeout(() => {
+            checkAdminStatus(session.user.id);
+          }, 0);
+        } else {
+          setIsAdmin(false);
+        }
       }
     );
 
@@ -22,19 +34,59 @@ export const useAuth = () => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      if (session?.user) {
+        setTimeout(() => {
+          checkAdminStatus(session.user.id);
+        }, 0);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
+  const checkAdminStatus = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('role', 'admin')
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
+        return;
+      }
+
+      setIsAdmin(!!data);
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      setIsAdmin(false);
+    }
+  };
+
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        toast({
+          title: "Erro ao sair",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   return {
     user,
     session,
     loading,
+    isAdmin,
     signOut,
   };
 };

@@ -1,83 +1,26 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Service, CreateServiceData, Client } from "@/types/instance";
+import { Service, CreateServiceData } from "@/types/instance";
 
 interface ServiceFormProps {
-  service?: Service | null;
-  clients: Client[];
+  service: Service | null;
   onSubmit: (data: CreateServiceData) => void;
   onCancel: () => void;
 }
 
-export function ServiceForm({ service, clients, onSubmit, onCancel }: ServiceFormProps) {
-  const [formData, setFormData] = useState<CreateServiceData>({
-    name: "",
-    description: "",
-    client_id: "",
-  });
-
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    if (service) {
-      setFormData({
-        name: service.name,
-        description: service.description || "",
-        client_id: service.client_id || "",
-      });
-    } else {
-      setFormData({
-        name: "",
-        description: "",
-        client_id: "",
-      });
-    }
-  }, [service]);
-
-  const handleInputChange = (field: keyof CreateServiceData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    clearError(field);
-  };
-
-  const handleSelectChange = (value: string) => {
-    setFormData(prev => ({ ...prev, client_id: value }));
-    clearError('client_id');
-  };
-
-  const clearError = (field: string) => {
-    if (errors[field]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
-  };
-
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.name.trim()) {
-      newErrors.name = "Nome do serviço é obrigatório";
-    }
-
-    if (!formData.client_id) {
-      newErrors.client_id = "Cliente é obrigatório";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
+  const [name, setName] = useState(service?.name || "");
+  const [description, setDescription] = useState(service?.description || "");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
-      onSubmit(formData);
-    }
+    onSubmit({
+      name,
+      description,
+    });
   };
 
   return (
@@ -87,42 +30,20 @@ export function ServiceForm({ service, clients, onSubmit, onCancel }: ServiceFor
           <Label htmlFor="name">Nome do Serviço *</Label>
           <Input
             id="name"
-            value={formData.name}
-            onChange={(e) => handleInputChange("name", e.target.value)}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             placeholder="Ex: WhatsApp Business"
-            className={errors.name ? "border-destructive" : ""}
+            required
           />
-          {errors.name && (
-            <p className="text-sm text-destructive">{errors.name}</p>
-          )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="client_id">Cliente *</Label>
-          <Select value={formData.client_id} onValueChange={handleSelectChange}>
-            <SelectTrigger className={errors.client_id ? "border-destructive" : ""}>
-              <SelectValue placeholder="Selecione um cliente" />
-            </SelectTrigger>
-            <SelectContent>
-              {clients.map((client) => (
-                <SelectItem key={client.id} value={client.id}>
-                  {client.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors.client_id && (
-            <p className="text-sm text-destructive">{errors.client_id}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="description">Descrição</Label>
+          <Label htmlFor="description">Descrição (opcional)</Label>
           <Textarea
             id="description"
-            value={formData.description}
-            onChange={(e) => handleInputChange("description", e.target.value)}
-            placeholder="Descrição opcional do serviço"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Descrição do serviço"
             rows={3}
           />
         </div>

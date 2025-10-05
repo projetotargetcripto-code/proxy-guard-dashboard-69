@@ -12,14 +12,8 @@ export function useServices() {
     try {
       const { data, error } = await supabase
         .from('services')
-        .select(`
-          *,
-          clients (
-            id,
-            name
-          )
-        `)
-        .order('name', { ascending: true });
+        .select('*')
+        .order('name', { ascending: true});
 
       if (error) throw error;
       setServices(data || []);
