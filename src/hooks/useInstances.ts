@@ -51,14 +51,32 @@ export function useInstances() {
 
   const createInstance = async (instanceData: CreateInstanceData) => {
     try {
-      // Calculate next instance number
-      const maxNumber = instances.length > 0 
-        ? Math.max(...instances.map(i => i.instance_number)) 
+      // Get user's account_id
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('account_id')
+        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (profileError) throw profileError;
+      
+      const accountId = profileData?.account_id || 0;
+      
+      // Calculate next instance number for this account
+      const accountInstances = instances.filter(i => 
+        i.instance_number?.startsWith(`${accountId}-`)
+      );
+      
+      const maxNumber = accountInstances.length > 0
+        ? Math.max(...accountInstances.map(i => {
+            const parts = i.instance_number.split('-');
+            return parseInt(parts[1] || '0', 10);
+          }))
         : 0;
       
       const dataToInsert = {
         ...instanceData,
-        instance_number: maxNumber + 1,
+        instance_number: `${accountId}-${maxNumber + 1}`,
         pid1: '0000',
         pid2: '0000',
         service_id: null,
@@ -91,7 +109,11 @@ export function useInstances() {
 
       if (error) throw error;
 
-      setInstances(prev => [...prev, data].sort((a, b) => a.instance_number - b.instance_number));
+      setInstances(prev => [...prev, data].sort((a, b) => {
+        const numA = parseInt(a.instance_number.split('-')[1] || '0', 10);
+        const numB = parseInt(b.instance_number.split('-')[1] || '0', 10);
+        return numA - numB;
+      }));
       toast({
         title: "Instância criada com sucesso",
         description: `A instância "${data.instance_name}" foi criada.`,

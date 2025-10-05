@@ -75,7 +75,7 @@ const PPX_TEMPLATE = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 
 interface InstanceRow {
   id: string;
-  instance_number: number;
+  instance_number: string;
   instance_name: string;
   pid1: string;
   pid2: string;

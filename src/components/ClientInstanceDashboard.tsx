@@ -271,7 +271,7 @@ export function ClientInstanceDashboard() {
 
         const instanceData: CreateInstanceData = {
           instance_name: instance.instance_name,
-          instance_number: instance.instance_number,
+          instance_number: String(instance.instance_number),
           pid1: instance.pid1 || "0000",
           pid2: instance.pid2 || "0000",
           proxy_id: newProxy.id,

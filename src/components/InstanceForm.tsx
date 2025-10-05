@@ -21,7 +21,7 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
   const { services } = useServices();
   const [formData, setFormData] = useState<CreateInstanceData>({
     instance_name: "",
-    instance_number: 1,
+    instance_number: "1",
     pid1: "0000",
     pid2: "0000",
     phone_number: "",
@@ -117,8 +117,8 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
       newErrors.instance_name = "Nome da instância é obrigatório";
     }
 
-    if (formData.instance_number < 1) {
-      newErrors.instance_number = "Número da instância deve ser maior que 0";
+    if (!formData.instance_number || formData.instance_number.trim() === "") {
+      newErrors.instance_number = "Número da instância é obrigatório";
     }
 
     if (!useExistingProxy) {

@@ -209,7 +209,11 @@ export function ApiInstancesGrid({
     () =>
       instances
         .filter((inst) => inst.sent_to_api)
-        .sort((a, b) => a.instance_number - b.instance_number),
+        .sort((a, b) => {
+          const numA = parseInt(a.instance_number.split('-')[1] || '0', 10);
+          const numB = parseInt(b.instance_number.split('-')[1] || '0', 10);
+          return numA - numB;
+        }),
     [instances],
   );
 

@@ -24,7 +24,7 @@ export type Database = {
           id: string
           inbox_id: string | null
           instance_name: string
-          instance_number: number
+          instance_number: string
           managed_by_zapguard: boolean
           phone_number: string | null
           pid1: string
@@ -52,7 +52,7 @@ export type Database = {
           id?: string
           inbox_id?: string | null
           instance_name: string
-          instance_number: number
+          instance_number: string
           managed_by_zapguard?: boolean
           phone_number?: string | null
           pid1?: string
@@ -80,7 +80,7 @@ export type Database = {
           id?: string
           inbox_id?: string | null
           instance_name?: string
-          instance_number?: number
+          instance_number?: string
           managed_by_zapguard?: boolean
           phone_number?: string | null
           pid1?: string

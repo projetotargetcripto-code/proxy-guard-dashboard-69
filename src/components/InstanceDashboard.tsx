@@ -273,7 +273,7 @@ export function InstanceDashboard() {
         // Create instance with the new proxy
         const instanceData: CreateInstanceData = {
           instance_name: instance.instance_name,
-          instance_number: instance.instance_number,
+          instance_number: String(instance.instance_number),
           pid1: instance.pid1,
           pid2: instance.pid2,
           proxy_id: newProxy.id,

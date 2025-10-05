@@ -37,7 +37,7 @@ export type InstanceStatus = 'Repouso' | 'Aquecendo' | 'Disparando' | 'Banida';
 
 export interface Instance {
   id: string;
-  instance_number: number;
+  instance_number: string;
   instance_name: string;
   pid1: string;
   pid2: string;
@@ -60,7 +60,7 @@ export interface Instance {
 
 export interface CreateInstanceData {
   instance_name: string;
-  instance_number: number;
+  instance_number: string;
   pid1: string;
   pid2: string;
   phone_number?: string | null;
