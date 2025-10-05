@@ -51,9 +51,22 @@ export function useInstances() {
 
   const createInstance = async (instanceData: CreateInstanceData) => {
     try {
+      // Calculate next instance number
+      const maxNumber = instances.length > 0 
+        ? Math.max(...instances.map(i => i.instance_number)) 
+        : 0;
+      
+      const dataToInsert = {
+        ...instanceData,
+        instance_number: maxNumber + 1,
+        pid1: '0000',
+        pid2: '0000',
+        service_id: null,
+      };
+
       const { data, error } = await supabase
         .from('instances')
-        .insert([instanceData])
+        .insert([dataToInsert])
         .select(`
           *,
           proxies (

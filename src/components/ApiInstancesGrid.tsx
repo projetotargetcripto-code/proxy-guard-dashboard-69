@@ -112,6 +112,9 @@ export function ApiInstancesGrid({
   >({});
   const [isTestingAll, setIsTestingAll] = useState(false);
   const webhookResponseResolversRef = useRef<Map<string, () => void>>(new Map());
+  const [serviceAssignModalOpen, setServiceAssignModalOpen] = useState(false);
+  const [instanceForServiceAssign, setInstanceForServiceAssign] = useState<Instance | null>(null);
+  const [assignedServiceId, setAssignedServiceId] = useState<string>("none");
 
   const updateTestConnectionResult = useCallback(
     (
@@ -842,7 +845,7 @@ export function ApiInstancesGrid({
                 </div>
               )}
               <div className="space-y-2">
-                {!isBorrowed ? (
+                {!isClientView && !isBorrowed && (
                   <>
                     <div className="flex flex-wrap gap-2">
                       <Button onClick={() => handleConnect(apiInstance)}>
@@ -892,15 +895,29 @@ export function ApiInstancesGrid({
                       )}
                     </div>
                   </>
-                ) : (
-                  <div className="flex justify-center">
+                )}
+                {(isClientView || isBorrowed) && (
+                  <div className="flex gap-2">
+                    {isClientView && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setInstanceForServiceAssign(apiInstance);
+                          setAssignedServiceId(apiInstance.service_id ?? "none");
+                          setServiceAssignModalOpen(true);
+                        }}
+                        className="flex-1"
+                      >
+                        Atribuir Serviço
+                      </Button>
+                    )}
                     <Button
                       onClick={() => handleTestConnection(apiInstance)}
                       disabled={
                         isTestingAll ||
                         testConnectionResults[apiInstance.id]?.status === "loading"
                       }
-                      className="w-full"
+                      className="flex-1"
                     >
                       {testConnectionResults[apiInstance.id]?.status === "loading" ? (
                         <span className="flex items-center gap-2">
@@ -936,6 +953,62 @@ export function ApiInstancesGrid({
           </Card>
         );
       })}
+      <Dialog
+        open={serviceAssignModalOpen}
+        onOpenChange={(open) => {
+          setServiceAssignModalOpen(open);
+          if (!open) {
+            setInstanceForServiceAssign(null);
+            setAssignedServiceId("none");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Atribuir Serviço</DialogTitle>
+            <DialogDescription>
+              Selecione um serviço para atribuir a esta instância.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <span className="text-sm font-medium text-foreground">Serviço</span>
+              <Select value={assignedServiceId} onValueChange={setAssignedServiceId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um serviço" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum serviço</SelectItem>
+                  {services.map((service) => (
+                    <SelectItem key={service.id} value={service.id}>
+                      {service.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button variant="outline" onClick={() => setServiceAssignModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                if (instanceForServiceAssign) {
+                  onUpdateInstance(instanceForServiceAssign.id, {
+                    status: instanceForServiceAssign.status,
+                    service_id: assignedServiceId === "none" ? null : assignedServiceId,
+                    inbox_id: instanceForServiceAssign.inbox_id,
+                  });
+                }
+                setServiceAssignModalOpen(false);
+              }}
+            >
+              Salvar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <Dialog
         open={statusModalOpen}
         onOpenChange={(open) => {

@@ -63,12 +63,8 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
       setIsEditingProxy(false);
       setProxyEditFormData(null);
       setProxyEditErrors({});
-    } else {
-      // Auto-generate next instance number
-      const maxNumber = proxies.length > 0 ? Math.max(...proxies.map((_, i) => i + 1)) : 0;
-      setFormData(prev => ({ ...prev, instance_number: maxNumber + 1 }));
     }
-  }, [instance, proxies]);
+  }, [instance]);
 
   useEffect(() => {
     setIsEditingProxy(false);
@@ -258,22 +254,6 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="instance_number">Número da Instância *</Label>
-          <Input
-            id="instance_number"
-            type="number"
-            value={formData.instance_number}
-            onChange={(e) => handleInputChange("instance_number", parseInt(e.target.value) || 1)}
-            placeholder="1"
-            min="1"
-            className={errors.instance_number ? "border-destructive" : ""}
-          />
-          {errors.instance_number && (
-            <p className="text-sm text-destructive">{errors.instance_number}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
           <Label htmlFor="phone_number">Telefone</Label>
           <Input
             id="phone_number"
@@ -281,28 +261,6 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
             onChange={(e) => handleInputChange("phone_number", e.target.value)}
             placeholder="(00) 00000-0000"
           />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="service_id">Serviço</Label>
-          <Select
-            value={formData.service_id ?? "none"}
-            onValueChange={(value) =>
-              handleInputChange("service_id", value === "none" ? null : value)
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione um serviço (opcional)" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Nenhum serviço</SelectItem>
-              {services.map((service) => (
-                <SelectItem key={service.id} value={service.id}>
-                  {service.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
 
         <div className="space-y-2">
@@ -318,34 +276,6 @@ export function InstanceForm({ instance, onSubmit, onCancel }: InstanceFormProps
               <SelectItem value="Banida">Banida</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="pid1">PID 1</Label>
-          <Input
-            id="pid1"
-            value={formData.pid1}
-            onChange={(e) => handleInputChange("pid1", e.target.value)}
-            placeholder="0000"
-            className={errors.pid1 ? "border-destructive" : ""}
-          />
-          {errors.pid1 && (
-            <p className="text-sm text-destructive">{errors.pid1}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="pid2">PID 2</Label>
-          <Input
-            id="pid2"
-            value={formData.pid2}
-            onChange={(e) => handleInputChange("pid2", e.target.value)}
-            placeholder="0000"
-            className={errors.pid2 ? "border-destructive" : ""}
-          />
-          {errors.pid2 && (
-            <p className="text-sm text-destructive">{errors.pid2}</p>
-          )}
         </div>
       </div>
 
