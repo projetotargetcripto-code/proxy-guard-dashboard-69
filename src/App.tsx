@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
+import DashFarm from "./pages/DashFarm";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import ZapGuardApp from "./pages/ZapGuardApp";
@@ -18,6 +19,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/dashfarm" element={<DashFarm />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/zapguardapp" element={<ZapGuardApp />} />
           <Route path="/zapguardapp/:accountId" element={<ZapGuardApp />} />
