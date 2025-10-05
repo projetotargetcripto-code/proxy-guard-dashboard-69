@@ -24,6 +24,7 @@ export type Database = {
           name: string
           phone: string | null
           updated_at: string
+          user_id: string
         }
         Insert: {
           account_id?: number | null
@@ -34,6 +35,7 @@ export type Database = {
           name: string
           phone?: string | null
           updated_at?: string
+          user_id?: string
         }
         Update: {
           account_id?: number | null
@@ -44,8 +46,17 @@ export type Database = {
           name?: string
           phone?: string | null
           updated_at?: string
+          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clients_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       instances: {
         Row: {
@@ -134,6 +145,27 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       proxies: {
         Row: {
           created_at: string
@@ -143,6 +175,7 @@ export type Database = {
           password: string
           port: number
           updated_at: string
+          user_id: string
           username: string
         }
         Insert: {
@@ -153,6 +186,7 @@ export type Database = {
           password: string
           port: number
           updated_at?: string
+          user_id?: string
           username: string
         }
         Update: {
@@ -163,9 +197,18 @@ export type Database = {
           password?: string
           port?: number
           updated_at?: string
+          user_id?: string
           username?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "proxies_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       services: {
         Row: {
@@ -207,7 +250,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      user_owns_client: {
+        Args: { client_id: string }
+        Returns: boolean
+      }
+      user_owns_instance: {
+        Args: { instance_id: string }
+        Returns: boolean
+      }
+      user_owns_proxy: {
+        Args: { proxy_id: string }
+        Returns: boolean
+      }
+      user_owns_service: {
+        Args: { service_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       instance_status: "Repouso" | "Aquecendo" | "Disparando" | "Banida"
