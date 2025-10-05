@@ -101,6 +101,7 @@ async function fetchInstancesOrdered(): Promise<InstanceRow[]> {
   const { data, error } = await supabase
     .from('instances')
     .select('*')
+    .is('borrowed_by_user_id', null) // Excluir instâncias emprestadas
     .order('ppx_rule_order', { ascending: true, nullsFirst: false })
     .order('instance_number', { ascending: true })
     .order('created_at', { ascending: true });

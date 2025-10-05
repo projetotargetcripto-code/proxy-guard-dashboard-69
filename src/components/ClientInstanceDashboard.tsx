@@ -60,7 +60,7 @@ export function ClientInstanceDashboard() {
   const [isBulkImporting, setIsBulkImporting] = useState(false);
   const [isAddingService, setIsAddingService] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
-  const [activeTab, setActiveTab] = useState("instances");
+  const [activeTab, setActiveTab] = useState("api-instances");
 
   const handleAddInstance = async (instanceData: CreateInstanceData, proxyData?: CreateProxyData) => {
     try {
@@ -214,8 +214,11 @@ export function ClientInstanceDashboard() {
   };
 
   const handleExportToSpreadsheet = () => {
+    // Filtrar apenas instâncias que não são emprestadas
+    const nonBorrowedInstances = filteredInstances.filter(inst => !inst.borrowed_by_user_id);
+    
     const csvHeader = "instance_name,instance_number,pid1,pid2,service_name,proxy_name,proxy_ip,proxy_port,proxy_username,proxy_password,status\n";
-    const csvData = filteredInstances.map(instance => {
+    const csvData = nonBorrowedInstances.map(instance => {
       const proxy = instance.proxies;
       return [
         `"${instance.instance_name}"`,
@@ -312,7 +315,7 @@ export function ClientInstanceDashboard() {
 
       toast({
         title: "PPX gerado com sucesso",
-        description: "O arquivo do Proxifier foi baixado.",
+        description: "O arquivo do Proxifier foi baixado (excluindo instâncias emprestadas).",
       });
     } catch (error) {
       console.error("Error generating PPX:", error);
@@ -370,9 +373,9 @@ export function ClientInstanceDashboard() {
       </div>
 
       {/* Main Content */}
-      <Tabs defaultValue="instances" className="w-full" onValueChange={setActiveTab}>
+      <Tabs defaultValue="api-instances" className="w-full" onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="instances">Instâncias</TabsTrigger>
+          <TabsTrigger value="instances">Configurar Instância</TabsTrigger>
           <TabsTrigger value="api-instances">Instâncias na API</TabsTrigger>
           <TabsTrigger value="services">Serviços</TabsTrigger>
         </TabsList>
